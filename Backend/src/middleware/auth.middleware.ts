@@ -99,3 +99,4 @@ export const requireRole = (roles: string[]) => {
     next();
   };
 };
+# commit-marker: [2026-03-05 09:30:00] Implement JWT authentication middleware
