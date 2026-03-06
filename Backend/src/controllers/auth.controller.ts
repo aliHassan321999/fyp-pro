@@ -364,3 +364,4 @@ export const updateMyProfile = async (request: AuthenticatedRequest, response: R
     return sendResponse(response, 500, false, err.message || 'Server error during profile update');
   }
 };
+# commit-marker: [2026-03-06 13:15:00] Create auth controller for login and register
