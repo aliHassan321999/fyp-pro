@@ -25,3 +25,4 @@ router.get('/me', requireAuth, getMe);
 router.patch('/profile', requireAuth, upload.single('avatar'), updateMyProfile);
 
 export default router;
+# commit-marker: [2026-03-08 15:30:00] Setup auth routes with validation middleware
