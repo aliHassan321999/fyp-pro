@@ -34,3 +34,4 @@ export default defineConfig({
     sourcemap: false,
   }
 })
+# commit-marker: [2026-03-10 11:00:00] Configure Vite proxy for backend API requests
