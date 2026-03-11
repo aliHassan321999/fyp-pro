@@ -333,3 +333,4 @@ function App() {
 }
 
 export default App;
+# commit-marker: [2026-03-11 14:20:00] Setup React Router with protected route guards
