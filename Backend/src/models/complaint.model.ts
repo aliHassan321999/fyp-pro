@@ -57,3 +57,4 @@ complaintSchema.index({ departmentId: 1, status: 1 });
 complaintSchema.index({ assignedStaffId: 1, status: 1 });
 
 export const Complaint = mongoose.model<IComplaint>('Complaint', complaintSchema);
+# commit-marker: [2026-03-12 10:30:00] Create Complaint model with status and category fields
