@@ -15,6 +15,47 @@ import { isValidTransition, canPerformTransition } from '../services/statusTrans
 import { processAssignment } from '../services/assignment.service';
 
 /**
+ * Previews the AI classification for a complaint before creating it.
+ */
+export const previewComplaintClassification = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
+  try {
+    const { title, description } = request.body;
+
+    const allDepartments = await Department.find();
+    if (allDepartments.length === 0) {
+      return sendResponse(response, 500, false, 'Critical Fault: No Departments available for routing.');
+    }
+
+    const validDepartmentsPayload = allDepartments.map(d => ({
+      name: d.name,
+      keywords: d.keywords || []
+    }));
+    
+    const aiContext = title && !title.includes('Automated Voice') ? `${title}. ${description}` : description;
+    const aiResult = await classifyComplaint(aiContext, validDepartmentsPayload);
+
+    let finalDepartmentName = 'General';
+    let finalDepartmentId = allDepartments[0]._id;
+
+    if (aiResult) {
+       const matchedDept = allDepartments.find(d => d.name.trim().toLowerCase() === aiResult.department.trim().toLowerCase());
+       if (matchedDept) {
+          finalDepartmentName = matchedDept.name;
+          finalDepartmentId = matchedDept._id;
+       }
+    }
+
+    return sendResponse(response, 200, true, 'AI Classification preview generated', {
+      departmentName: finalDepartmentName,
+      departmentId: finalDepartmentId
+    });
+  } catch (error) {
+    const err = error as Error;
+    return sendResponse(response, 500, false, err.message || 'Server error');
+  }
+};
+
+/**
  * Resident creates a new complaint routing it to a department, automatically computing SLA.
  */
 export const createComplaint = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
@@ -32,10 +73,6 @@ export const createComplaint = async (request: AuthenticatedRequest, response: R
       keywords: d.keywords || []
     }));
     
-    // Explicit AI Classification Pipeline
-    const aiContext = title && !title.includes('Automated Voice') ? `${title}. ${description}` : description;
-    const aiResult = await classifyComplaint(aiContext, validDepartmentsPayload);
-
     let finalDepartmentId = payloadDeptId;
     let finalPriority = payloadPriority || 'medium';
 
@@ -45,24 +82,28 @@ export const createComplaint = async (request: AuthenticatedRequest, response: R
     );
     const fallbackDeptId = fallbackTarget ? fallbackTarget._id : allDepartments[0]._id;
 
-    if (aiResult) {
-       // Validate exact normalized match
-       const matchedDept = allDepartments.find(d => d.name.trim().toLowerCase() === aiResult.department.trim().toLowerCase());
-       
-       if (matchedDept) {
-          finalDepartmentId = matchedDept._id;
-       } else {
-          console.warn(`[AI Controller] Hallucinated/Unknown Department: ${aiResult.department}. Falling back to default.`);
-          finalDepartmentId = fallbackDeptId;
-       }
-
-       if (['low', 'medium', 'high', 'critical'].includes(aiResult.priority)) {
-          finalPriority = aiResult.priority;
-       }
+    // If frontend already provided the AI-previewed departmentId, we can skip the second AI call
+    if (payloadDeptId) {
+      finalDepartmentId = payloadDeptId;
     } else {
-      // AI Service completely failed or timed out
-      finalDepartmentId = fallbackDeptId;
-      finalPriority = 'medium';
+      // Explicit AI Classification Pipeline
+      const aiContext = title && !title.includes('Automated Voice') ? `${title}. ${description}` : description;
+      const aiResult = await classifyComplaint(aiContext, validDepartmentsPayload);
+
+      if (aiResult) {
+         const matchedDept = allDepartments.find(d => d.name.trim().toLowerCase() === aiResult.department.trim().toLowerCase());
+         if (matchedDept) {
+            finalDepartmentId = matchedDept._id;
+         } else {
+            console.warn(`[AI Controller] Hallucinated/Unknown Department: ${aiResult.department}. Falling back to default.`);
+            finalDepartmentId = fallbackDeptId;
+         }
+         if (['low', 'medium', 'high', 'critical'].includes(aiResult.priority)) {
+            finalPriority = aiResult.priority;
+         }
+      } else {
+        finalDepartmentId = fallbackDeptId;
+      }
     }
 
     // Capture recommended staff IDs if AI provided any, or leave empty for now
@@ -387,3 +428,4 @@ export const submitComplaintFeedback = async (request: AuthenticatedRequest, res
     return sendResponse(response, 500, false, 'Server error while submitting feedback');
   }
 };
+# commit-marker: [2026-03-13 13:00:00] Implement complaint submission controller
