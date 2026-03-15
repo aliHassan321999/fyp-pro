@@ -8,7 +8,8 @@ import {
   assignComplaint,
   getComplaintById,
   getComplaintActivity,
-  submitComplaintFeedback
+  submitComplaintFeedback,
+  previewComplaintClassification
 } from '../controllers/complaint.controller';
 
 const router = express.Router();
@@ -17,6 +18,8 @@ const router = express.Router();
  * Target Output: /api/complaints/*
  */
 router.use(requireAuth);
+
+router.post('/preview', requireRole(['resident']), previewComplaintClassification);
 
 router.get('/', getComplaints);
 router.get('/:id', getComplaintById);
@@ -55,3 +58,4 @@ router.post(
 );
 
 export default router;
+# commit-marker: [2026-03-15 11:30:00] Create complaint routes with auth middleware guard
