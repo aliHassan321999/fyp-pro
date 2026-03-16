@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Send, ImagePlus, CheckCircle, Mic, MicOff, MapPin, AlertCircle, Edit3, ShieldCheck, Droplet, Zap, Loader2, X, FileText } from 'lucide-react';
 import { Button, Card } from '@components/Common';
 import { ROUTES } from '@constants/index';
-import { useCreateComplaintMutation } from '@/features/complaint/complaint.api';
+import { useCreateComplaintMutation, usePreviewComplaintClassificationMutation } from '@/features/complaint/complaint.api';
 import { showSuccess, showError } from '@/utils/toast';
 
 // Native Web Speech Integration Map
@@ -20,16 +20,20 @@ const SubmitComplaintPage: React.FC = () => {
 
   // Network Mappings
   const [createComplaint, { isLoading: isSubmitting }] = useCreateComplaintMutation();
+  const [previewClassification, { isLoading: isPreviewing }] = usePreviewComplaintClassificationMutation();
 
   // State Machine Architecture: input -> confirm -> success
   const [step, setStep] = useState<'input' | 'confirm'>('input');
   const [successPayload, setSuccessPayload] = useState<any>(null); 
   const [apiError, setApiError] = useState<string>('');
+  const [previewDepartment, setPreviewDepartment] = useState<string>('Auto-Categorized by AI');
+  const [previewDepartmentId, setPreviewDepartmentId] = useState<string>('');
   
   // Form Payload Constraints
   const [formData, setFormData] = useState({ description: '' });
   const [images, setImages] = useState<File[]>([]);
   const [coordinates, setCoordinates] = useState<{lat: number | null, lng: number | null}>({ lat: null, lng: null });
+  const [manualLocation, setManualLocation] = useState('');
   const [isLocating, setIsLocating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -131,12 +135,13 @@ const SubmitComplaintPage: React.FC = () => {
      navigator.geolocation.getCurrentPosition(
        (position) => {
          setCoordinates({ lat: position.coords.latitude, lng: position.coords.longitude });
+         setManualLocation(''); // Clear manual location if GPS succeeds
          setIsLocating(false);
          if (errors.location) setErrors(prev => ({ ...prev, location: '' }));
        },
        (error) => {
          console.error(error);
-         showError("Failed to map coordinates natively.");
+         showError("Failed to map coordinates natively. Please enter location manually.");
          setIsLocating(false);
        }
      );
@@ -145,7 +150,9 @@ const SubmitComplaintPage: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
     if (!formData.description.trim()) newErrors.description = 'Please provide the details of your complaint.';
-    if (!coordinates.lat || !coordinates.lng) newErrors.location = 'Please capture your precise location target.';
+    if ((!coordinates.lat || !coordinates.lng) && !manualLocation.trim()) {
+      newErrors.location = 'Please capture your GPS location or type it manually.';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -153,10 +160,28 @@ const SubmitComplaintPage: React.FC = () => {
 
   const autoTitle = formData.description.split(' ').slice(0, 5).join(' ') + (formData.description.split(' ').length > 5 ? '...' : '');
 
-  const proceedToConfirmation = (e: React.FormEvent) => {
+  const proceedToConfirmation = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isListening) toggleListening();
     if (validateForm()) {
+        try {
+          const result = await previewClassification({ 
+            title: autoTitle || 'Automated Voice Entry', 
+            description: formData.description 
+          }).unwrap();
+          
+          if (result.success && result.data?.departmentName) {
+            setPreviewDepartment(result.data.departmentName);
+            setPreviewDepartmentId(result.data.departmentId);
+          } else {
+            setPreviewDepartment('Auto-Categorized by AI');
+            setPreviewDepartmentId('');
+          }
+        } catch (err) {
+          console.error("AI Preview Failed:", err);
+          setPreviewDepartment('Auto-Categorized by AI');
+          setPreviewDepartmentId('');
+        }
         setStep('confirm');
     }
   };
@@ -167,12 +192,16 @@ const SubmitComplaintPage: React.FC = () => {
       const payload = new FormData();
       payload.append('title', autoTitle || 'Automated Voice Entry');
       payload.append('description', formData.description);
-      payload.append('departmentId', '67b7ddf2bbbe01ba7aaadceb'); // Default Maintenance Dept Mock
+      if (previewDepartmentId) {
+        payload.append('departmentId', previewDepartmentId);
+      }
       payload.append('priority', 'medium');
       
       if (coordinates.lat && coordinates.lng) {
         payload.append('lat', coordinates.lat.toString());
         payload.append('lng', coordinates.lng.toString());
+      } else if (manualLocation) {
+        payload.append('address', manualLocation); // Using address field for manual location
       }
       images.forEach(img => payload.append('images', img));
 
@@ -369,6 +398,25 @@ const SubmitComplaintPage: React.FC = () => {
                              </div>
                           )}
                         </button>
+                        
+                        <div className="mt-4">
+                           <div className="flex items-center gap-2 mb-2">
+                             <div className="h-px bg-slate-200 flex-1"></div>
+                             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">OR ENTER MANUALLY</span>
+                             <div className="h-px bg-slate-200 flex-1"></div>
+                           </div>
+                           <input
+                             type="text"
+                             value={manualLocation}
+                             onChange={(e) => {
+                               setManualLocation(e.target.value);
+                               if (errors.location) setErrors(prev => ({ ...prev, location: '' }));
+                             }}
+                             placeholder="e.g., Block A, Near the main park..."
+                             className="w-full p-4 bg-[#F8FAFC] border-2 border-slate-100 rounded-[1.25rem] font-medium text-slate-700 focus:outline-none focus:border-blue-200 focus:bg-white transition-all"
+                           />
+                        </div>
+
                         {errors.location && <p className="text-red-500 text-sm font-bold mt-3">{errors.location}</p>}
                       </div>
                     </div>
@@ -378,9 +426,14 @@ const SubmitComplaintPage: React.FC = () => {
                       
                       <Button
                         type="submit"
-                        className="w-full max-w-sm py-5 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/25 font-bold text-lg rounded-[1.25rem] shadow-[0_8px_30px_rgba(37,99,235,0.25)] transition-all flex justify-center items-center gap-2 group mx-auto"
+                        disabled={isPreviewing}
+                        className="w-full max-w-sm py-5 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/25 font-bold text-lg rounded-[1.25rem] shadow-[0_8px_30px_rgba(37,99,235,0.25)] transition-all flex justify-center items-center gap-2 group mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Review Complaint <Send className="w-5 h-5 transition-transform group-hover:translate-x-1.5"/>
+                        {isPreviewing ? (
+                          <><Loader2 className="w-5 h-5 animate-spin" /> AI Analyzing...</>
+                        ) : (
+                          <>Review Complaint <Send className="w-5 h-5 transition-transform group-hover:translate-x-1.5"/></>
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -403,10 +456,12 @@ const SubmitComplaintPage: React.FC = () => {
                     <div className="pt-6 border-t border-slate-200">
                       <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><Zap className="w-4 h-4"/> Assigned Department</p>
                       <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex items-center gap-3">
-                         <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center"><Droplet className="w-5 h-5" /></div>
+                         <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><Zap className="w-5 h-5" /></div>
                          <div>
-                           <p className="font-bold text-slate-800">Maintenance</p>
-                           <p className="text-sm font-medium text-slate-400">We identified this issue as Maintenance</p>
+                           <p className="font-bold text-slate-800">
+                             {previewDepartment}
+                           </p>
+                           <p className="text-sm font-medium text-slate-400">Our AI has predicted this is the most appropriate department.</p>
                          </div>
                       </div>
                     </div>
@@ -461,3 +516,4 @@ const SubmitComplaintPage: React.FC = () => {
 };
 
 export default SubmitComplaintPage;
+# commit-marker: [2026-03-16 14:45:00] Build SubmitComplaintPage with form validation
