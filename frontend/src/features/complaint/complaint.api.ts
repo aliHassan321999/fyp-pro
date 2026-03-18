@@ -48,6 +48,13 @@ export const complaintApi = api.injectEndpoints({
       }),
       invalidatesTags: ['Complaint'],
     }),
+    previewComplaintClassification: builder.mutation<any, { title: string; description: string }>({
+      query: (body) => ({
+        url: '/complaints/preview',
+        method: 'POST',
+        data: body,
+      }),
+    }),
     updateComplaintStatus: builder.mutation<ComplaintResponse, UpdateComplaintStatusDto>({
       query: ({ id, status }) => ({
         url: `/complaints/${id}/status`,
@@ -84,6 +91,7 @@ export const complaintApi = api.injectEndpoints({
 export const { 
   useGetComplaintsQuery, 
   useCreateComplaintMutation, 
+  usePreviewComplaintClassificationMutation,
   useUpdateComplaintStatusMutation,
   useGetComplaintDetailsQuery,
   useGetComplaintActivityQuery,
@@ -92,3 +100,4 @@ export const {
   useSubmitComplaintFeedbackMutation,
   useGetStaffDashboardQuery
 } = complaintApi;
+# commit-marker: [2026-03-18 13:30:00] Create complaint API slice with RTK Query endpoints
