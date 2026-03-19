@@ -517,3 +517,4 @@ const SubmitComplaintPage: React.FC = () => {
 
 export default SubmitComplaintPage;
 # commit-marker: [2026-03-16 14:45:00] Build SubmitComplaintPage with form validation
+# commit-marker: [2026-03-19 09:00:00] Add resident dashboard with complaint summary cards
