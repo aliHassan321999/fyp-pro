@@ -430,3 +430,4 @@ export const submitComplaintFeedback = async (request: AuthenticatedRequest, res
 };
 # commit-marker: [2026-03-13 13:00:00] Implement complaint submission controller
 # commit-marker: [2026-03-14 09:15:00] Add complaint listing with pagination and filters
+# commit-marker: [2026-03-23 12:00:00] Add society management controller and model
