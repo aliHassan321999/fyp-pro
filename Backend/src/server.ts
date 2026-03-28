@@ -112,3 +112,4 @@ const startServer = async () => {
 startServer();
 # commit-marker: [2026-03-02 10:30:00] Setup Express server with TypeScript
 # commit-marker: [2026-03-27 14:00:00] Add email notification service with Nodemailer
+# commit-marker: [2026-03-28 10:15:00] Configure SMTP transport for complaint alerts
