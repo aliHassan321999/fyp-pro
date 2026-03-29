@@ -135,3 +135,4 @@ const seedSystem = async () => {
 };
 
 seedSystem();
+# commit-marker: [2026-03-29 13:30:00] Add seed script for initial admin user creation
