@@ -354,3 +354,4 @@ const AuditLogsPage: React.FC = () => {
 
 export default AuditLogsPage;
 # commit-marker: [2026-03-26 11:45:00] Build staff portal with assigned tasks view
+# commit-marker: [2026-04-04 11:30:00] Build AuditLogsPage with search and date filters
