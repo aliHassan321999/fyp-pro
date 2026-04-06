@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Button, Card, InputField } from '@components/Common';
 import { ROUTES } from '@constants/index';
 
@@ -8,13 +8,14 @@ const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
+    password: '',
     cnic: '',
     document: null as File | null,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -22,6 +23,12 @@ const RegisterPage: React.FC = () => {
       newErrors.email = 'Email is required';
     } else if (!formData.email.includes('@')) {
       newErrors.email = 'Please enter a valid email';
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
     }
 
     if (!formData.cnic.trim()) {
@@ -50,7 +57,7 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -64,17 +71,18 @@ const RegisterPage: React.FC = () => {
       const newRequest = {
         id: Date.now().toString(),
         email: formData.email,
+        password: formData.password,
         cnic: formData.cnic,
         documentName: formData.document?.name || 'document',
         status: 'pending',
         createdAt: new Date().toISOString(),
       };
-      
+
       registrationRequests.push(newRequest);
       localStorage.setItem('registrationRequests', JSON.stringify(registrationRequests));
-      
+
       console.log('Registration request submitted:', newRequest);
-      
+
       setSuccess(true);
       setIsLoading(false);
     }, 1500);
@@ -119,104 +127,138 @@ const RegisterPage: React.FC = () => {
           {/* Registration Form */}
           {!success ? (
             <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="label-field">
-                Email Address
-              </label>
-              <InputField
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
-                  if (errors.email) {
-                    setErrors({ ...errors, email: '' });
-                  }
-                }}
-                error={errors.email}
-                required
-              />
-            </div>
-
-            {/* CNIC Field */}
-            <div>
-              <label htmlFor="cnic" className="label-field">
-                CNIC Number
-              </label>
-              <InputField
-                id="cnic"
-                type="text"
-                placeholder="e.g., 12345-6789012-3"
-                value={formData.cnic}
-                onChange={(e) => {
-                  setFormData({ ...formData, cnic: e.target.value });
-                  if (errors.cnic) {
-                    setErrors({ ...errors, cnic: '' });
-                  }
-                }}
-                error={errors.cnic}
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">Enter your CNIC number without dashes</p>
-            </div>
-
-            {/* Document Upload */}
-            <div>
-              <label htmlFor="document" className="label-field">
-                Proof Document
-              </label>
-              <div className="relative">
-                <input
-                  id="document"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                  className="hidden"
+              {/* CNIC Field */}
+              <div>
+                <label htmlFor="cnic" className="label-field">
+                  CNIC Number
+                </label>
+                <InputField
+                  id="cnic"
+                  type="text"
+                  placeholder="e.g., 1234567890123"
+                  value={formData.cnic}
+                  onChange={(e) => {
+                    setFormData({ ...formData, cnic: e.target.value });
+                    if (errors.cnic) {
+                      setErrors({ ...errors, cnic: '' });
+                    }
+                  }}
+                  error={errors.cnic}
+                  required
                 />
-                <label
-                  htmlFor="document"
-                  className={`
+                <p className="text-xs text-gray-500 mt-1">Enter your CNIC number without dashes</p>
+              </div>
+
+              {/* Email Field */}
+              <div>
+                <label htmlFor="email" className="label-field">
+                  Email Address
+                </label>
+                <InputField
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={(e) => {
+                    setFormData({ ...formData, email: e.target.value });
+                    if (errors.email) {
+                      setErrors({ ...errors, email: '' });
+                    }
+                  }}
+                  error={errors.email}
+                  required
+                />
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label htmlFor="password" className="label-field">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={formData.password}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      if (errors.password) {
+                        setErrors({ ...errors, password: '' });
+                      }
+                    }}
+                    className={`input-field pr-12 w-full ${errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-100' : ''}`}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center p-1"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+              </div>
+
+              {/* Document Upload */}
+              <div>
+                <label htmlFor="document" className="label-field">
+                  Proof Document
+                </label>
+                <div className="relative">
+                  <input
+                    id="document"
+                    type="file"
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="document"
+                    className={`
                     flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-lg cursor-pointer
                     transition-all duration-200
-                    ${
-                      errors.document
+                    ${errors.document
                         ? 'border-red-300 bg-red-50'
                         : formData.document
-                        ? 'border-blue-300 bg-blue-50'
-                        : 'border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50'
-                    }
+                          ? 'border-blue-300 bg-blue-50'
+                          : 'border-gray-300 bg-gray-50 hover:border-blue-300 hover:bg-blue-50'
+                      }
                   `}
-                >
-                  <Upload className={`w-6 h-6 mb-2 ${
-                    formData.document ? 'text-blue-600' : 'text-gray-400'
-                  }`} />
-                  <p className="text-sm font-medium text-gray-700">
-                    {formData.document ? formData.document.name : 'Click to upload'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    PDF, DOC, DOCX, JPG, PNG (Max 5MB)
-                  </p>
-                </label>
+                  >
+                    <Upload className={`w-6 h-6 mb-2 ${formData.document ? 'text-blue-600' : 'text-gray-400'
+                      }`} />
+                    <p className="text-sm font-medium text-gray-700">
+                      {formData.document ? formData.document.name : 'Click to upload'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PDF, DOC, DOCX, JPG, PNG (Max 5MB)
+                    </p>
+                  </label>
+                </div>
+                {errors.document && (
+                  <p className="text-red-500 text-sm mt-1">{errors.document}</p>
+                )}
               </div>
-              {errors.document && (
-                <p className="text-red-500 text-sm mt-1">{errors.document}</p>
-              )}
-            </div>
 
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              fullWidth
-              isLoading={isLoading}
-              disabled={success}
-              className="mt-8"
-            >
-              Create Account
-            </Button>
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                fullWidth
+                isLoading={isLoading}
+                disabled={success}
+                className="mt-8"
+              >
+                Create Account
+              </Button>
             </form>
           ) : (
             <div className="py-8 text-center">
