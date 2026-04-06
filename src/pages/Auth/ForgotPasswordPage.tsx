@@ -5,6 +5,7 @@ import { ROUTES } from '@constants/index';
 import Card from '@components/Common/Card';
 import Button from '@components/Common/Button';
 import InputField from '@components/Common/InputField';
+import { PageMeta } from '@components/Common/PageMeta';
 import securityIcon from '../../assets/icons/security.svg';
 import verifiedIcon from '../../assets/icons/verified.svg';
 
@@ -34,6 +35,7 @@ const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-white flex flex-col">
+      <PageMeta title="Forgot Password | Complaint Management System" description="Reset your password" />
       {/* Header Navigation */}
       <nav className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-3">

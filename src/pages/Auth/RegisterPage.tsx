@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Button, Card, InputField } from '@components/Common';
 import { ROUTES } from '@constants/index';
+import { PageMeta } from '@components/Common/PageMeta';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -90,6 +91,7 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-white flex flex-col items-center justify-center p-4">
+      <PageMeta title="Create Account | Complaint Management System" description="Register a new account" />
       {/* Header Logo/Branding */}
       <div className="mb-12 text-center">
         <div className="inline-flex items-center gap-2 mb-4">

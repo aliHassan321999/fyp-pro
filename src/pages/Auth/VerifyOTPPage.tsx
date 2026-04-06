@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
 import { ROUTES } from '@constants/index';
 import Card from '@components/Common/Card';
 import Button from '@components/Common/Button';
+import { PageMeta } from '@components/Common/PageMeta';
 
 const VerifyOTPPage: React.FC = () => {
   const navigate = useNavigate();
@@ -77,6 +78,7 @@ const VerifyOTPPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-white flex flex-col">
+      <PageMeta title="Verify OTP | Complaint Management System" description="Enter verification code" />
       {/* Header Navigation */}
       <nav className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-white">
         <div className="flex items-center gap-3">
