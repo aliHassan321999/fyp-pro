@@ -5,6 +5,8 @@ import { ROUTES } from '@constants/index';
 import Card from '@components/Common/Card';
 import Button from '@components/Common/Button';
 import InputField from '@components/Common/InputField';
+import securityIcon from '../../assets/icons/security.svg';
+import verifiedIcon from '../../assets/icons/verified.svg';
 
 const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -116,11 +118,11 @@ const ForgotPasswordPage: React.FC = () => {
           {/* Security Badges */}
           <div className="mt-8 flex items-center justify-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full">
-              <span className="text-blue-600 text-sm">✓</span>
+              <img src={verifiedIcon} alt="Verified" className="w-4 h-4" />
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">End-to-End Encrypted</span>
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-full">
-              <span className="text-blue-600 text-sm">🛡️</span>
+              <img src={securityIcon} alt="Security" className="w-4 h-4" />
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">256-bit Security</span>
             </div>
           </div>
