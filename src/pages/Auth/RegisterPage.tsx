@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle, Eye, EyeOff, Building, HelpCircle, Home } from 'lucide-react';
 import { Button, Card, InputField } from '@components/Common';
 import { ROUTES } from '@constants/index';
 import { PageMeta } from '@components/Common/PageMeta';
@@ -8,8 +8,13 @@ import { PageMeta } from '@components/Common/PageMeta';
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    fullName: '',
     email: '',
     password: '',
+    block: '',
+    houseNumber: '',
+    street: '',
+    phoneNumber: '',
     cnic: '',
     document: null as File | null,
   });
@@ -19,6 +24,10 @@ const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+    }
 
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
@@ -30,6 +39,22 @@ const RegisterPage: React.FC = () => {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!formData.block.trim()) {
+      newErrors.block = 'Block is required';
+    }
+
+    if (!formData.houseNumber.trim()) {
+      newErrors.houseNumber = 'House number is required';
+    }
+
+    if (!formData.street.trim()) {
+      newErrors.street = 'Street is required';
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
     }
 
     if (!formData.cnic.trim()) {
@@ -71,8 +96,13 @@ const RegisterPage: React.FC = () => {
       const registrationRequests = JSON.parse(localStorage.getItem('registrationRequests') || '[]');
       const newRequest = {
         id: Date.now().toString(),
+        fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
+        block: formData.block,
+        houseNumber: formData.houseNumber,
+        street: formData.street,
+        phoneNumber: formData.phoneNumber,
         cnic: formData.cnic,
         documentName: formData.document?.name || 'document',
         status: 'pending',
@@ -90,27 +120,43 @@ const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-white flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-white via-blue-50 to-white">
       <PageMeta title="Create Account | Complaint Management System" description="Register a new account" />
-      {/* Header Logo/Branding */}
-      <div className="mb-12 text-center">
-        <div className="inline-flex items-center gap-2 mb-4">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg shadow-md"></div>
-          <span className="text-2xl font-bold text-gray-900">SocietyAI</span>
+      
+      {/* Top Navbar */}
+      <header className="w-full bg-white shadow-sm px-6 py-4 flex items-center justify-between z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm">
+            <Building className="w-6 h-6" />
+          </div>
+          <span className="text-xl font-bold text-gray-900 tracking-tight">Resident Portal</span>
         </div>
-        <p className="text-gray-500 font-medium">Community Management Platform</p>
-      </div>
+        <div className="flex items-center gap-6">
+          <button type="button" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+            Help Center
+          </button>
+          <button type="button" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+            Contact Support
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col items-center justify-center p-4">
 
       {/* Register Card */}
       <div className="w-full max-w-md">
         <Card className="p-8">
           {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Create Account
+          <div className="mb-8">
+            <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold tracking-wider rounded-full mb-4">
+              REGISTRATION FORM
+            </div>
+            <h1 className="text-3xl font-extrabold text-[#0f172a] mb-2 tracking-tight">
+              Resident Registration
             </h1>
-            <p className="text-gray-600">
-              Complete your resident profile
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Please provide your details and property information to register for the digital portal.
             </p>
           </div>
 
@@ -129,6 +175,27 @@ const RegisterPage: React.FC = () => {
           {/* Registration Form */}
           {!success ? (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Full Name Field */}
+              <div>
+                <label htmlFor="fullName" className="label-field">
+                  Full Name
+                </label>
+                <InputField
+                  id="fullName"
+                  type="text"
+                  placeholder="e.g., John Doe"
+                  value={formData.fullName}
+                  onChange={(e) => {
+                    setFormData({ ...formData, fullName: e.target.value });
+                    if (errors.fullName) {
+                      setErrors({ ...errors, fullName: '' });
+                    }
+                  }}
+                  error={errors.fullName}
+                  required
+                />
+              </div>
+
               {/* CNIC Field */}
               <div>
                 <label htmlFor="cnic" className="label-field">
@@ -137,7 +204,7 @@ const RegisterPage: React.FC = () => {
                 <InputField
                   id="cnic"
                   type="text"
-                  placeholder="e.g., 1234567890123"
+                  placeholder="Enter your CNIC number without dashes"
                   value={formData.cnic}
                   onChange={(e) => {
                     setFormData({ ...formData, cnic: e.target.value });
@@ -148,7 +215,27 @@ const RegisterPage: React.FC = () => {
                   error={errors.cnic}
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Enter your CNIC number without dashes</p>
+              </div>
+
+              {/* Phone Number Field */}
+              <div>
+                <label htmlFor="phoneNumber" className="label-field">
+                  Phone Number
+                </label>
+                <InputField
+                  id="phoneNumber"
+                  type="tel"
+                  placeholder="e.g., 0300-1234567"
+                  value={formData.phoneNumber}
+                  onChange={(e) => {
+                    setFormData({ ...formData, phoneNumber: e.target.value });
+                    if (errors.phoneNumber) {
+                      setErrors({ ...errors, phoneNumber: '' });
+                    }
+                  }}
+                  error={errors.phoneNumber}
+                  required
+                />
               </div>
 
               {/* Email Field */}
@@ -206,6 +293,69 @@ const RegisterPage: React.FC = () => {
                   </button>
                 </div>
                 {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+              </div>
+
+              {/* Block Field */}
+              <div>
+                <label htmlFor="block" className="label-field">
+                  Block / Phase
+                </label>
+                <InputField
+                  id="block"
+                  type="text"
+                  placeholder="e.g., Block A, Phase 1"
+                  value={formData.block}
+                  onChange={(e) => {
+                    setFormData({ ...formData, block: e.target.value });
+                    if (errors.block) {
+                      setErrors({ ...errors, block: '' });
+                    }
+                  }}
+                  error={errors.block}
+                  required
+                />
+              </div>
+
+              {/* House Number Field */}
+              <div>
+                <label htmlFor="houseNumber" className="label-field">
+                  House Number
+                </label>
+                <InputField
+                  id="houseNumber"
+                  type="text"
+                  placeholder="e.g., House No. 12"
+                  value={formData.houseNumber}
+                  onChange={(e) => {
+                    setFormData({ ...formData, houseNumber: e.target.value });
+                    if (errors.houseNumber) {
+                      setErrors({ ...errors, houseNumber: '' });
+                    }
+                  }}
+                  error={errors.houseNumber}
+                  required
+                />
+              </div>
+
+              {/* Street Field */}
+              <div>
+                <label htmlFor="street" className="label-field">
+                  Street
+                </label>
+                <InputField
+                  id="street"
+                  type="text"
+                  placeholder="e.g., Street 4"
+                  value={formData.street}
+                  onChange={(e) => {
+                    setFormData({ ...formData, street: e.target.value });
+                    if (errors.street) {
+                      setErrors({ ...errors, street: '' });
+                    }
+                  }}
+                  error={errors.street}
+                  required
+                />
               </div>
 
               {/* Document Upload */}
@@ -291,6 +441,7 @@ const RegisterPage: React.FC = () => {
           Complaint Management System v1.0 • All rights reserved
         </p>
       </div>
+      </main>
     </div>
   );
 };
