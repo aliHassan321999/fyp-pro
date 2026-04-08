@@ -164,7 +164,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-50 to-white flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-white via-blue-50 to-white flex flex-col">
       <PageMeta title="Login | Complaint Management System" description="Login to your account" />
       {/* Header Navigation */}
       <nav className="flex items-center justify-between px-8 py-6 border-b border-gray-200 bg-white">
@@ -173,6 +173,18 @@ const LoginPage: React.FC = () => {
             <span className="text-white font-bold text-lg">📋</span>
           </div>
           <span className="text-lg font-bold text-gray-900">Complaint Management System</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <button type="button" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+            Help Center
+          </button>
+          <button 
+            type="button" 
+            onClick={() => navigate(ROUTES.REGISTER)} 
+            className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg transition-colors shadow-sm"
+          >
+            Register
+          </button>
         </div>
       </nav>
 
