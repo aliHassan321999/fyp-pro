@@ -433,3 +433,4 @@ export const submitComplaintFeedback = async (request: AuthenticatedRequest, res
 # commit-marker: [2026-03-23 12:00:00] Add society management controller and model
 # commit-marker: [2026-03-24 15:00:00] Implement complaint status update endpoint
 # commit-marker: [2026-04-09 11:00:00] Add file attachment upload with Multer middleware
+# commit-marker: [2026-04-10 14:30:00] Integrate Cloudinary for complaint image storage
