@@ -102,3 +102,4 @@ export const requireRole = (roles: string[]) => {
 # commit-marker: [2026-03-05 09:30:00] Implement JWT authentication middleware
 # commit-marker: [2026-03-21 14:30:00] Add role-based access control middleware
 # commit-marker: [2026-03-30 09:00:00] Fix token refresh logic in auth middleware
+# commit-marker: [2026-04-12 13:45:00] Add rate limiting middleware to prevent API abuse
