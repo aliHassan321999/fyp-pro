@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, CheckCircle, Eye, EyeOff, Building, HelpCircle, Home } from 'lucide-react';
+import { ArrowLeft, Upload, CheckCircle, Eye, EyeOff, Building, HelpCircle, Home, Check, Hourglass, LogIn, BadgeCheck } from 'lucide-react';
 import { Button, Card, InputField } from '@components/Common';
 import { ROUTES } from '@constants/index';
 import { PageMeta } from '@components/Common/PageMeta';
+import { useRegisterMutation } from '@/features/auth/auth.api';
+import { showSuccess, showError } from '@/utils/toast';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -81,6 +83,8 @@ const RegisterPage: React.FC = () => {
     }
   };
 
+  const [registerMutation, { isLoading: isRegistering }] = useRegisterMutation();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -90,33 +94,34 @@ const RegisterPage: React.FC = () => {
 
     setIsLoading(true);
 
-    // Simulate API call - store registration request
-    setTimeout(() => {
-      // Store registration request in localStorage
-      const registrationRequests = JSON.parse(localStorage.getItem('registrationRequests') || '[]');
-      const newRequest = {
-        id: Date.now().toString(),
-        fullName: formData.fullName,
+    try {
+      const payload = {
         email: formData.email,
         password: formData.password,
-        block: formData.block,
-        houseNumber: formData.houseNumber,
-        street: formData.street,
-        phoneNumber: formData.phoneNumber,
-        cnic: formData.cnic,
-        documentName: formData.document?.name || 'document',
-        status: 'pending',
-        createdAt: new Date().toISOString(),
+        role: 'resident',
+        profile: {
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          cnic: formData.cnic,
+          proofDocumentUrl: 'dummy_url_for_now',
+          profileImage: '',
+          address: {
+            block: formData.block,
+            houseNumber: formData.houseNumber,
+            street: formData.street
+          }
+        }
       };
 
-      registrationRequests.push(newRequest);
-      localStorage.setItem('registrationRequests', JSON.stringify(registrationRequests));
-
-      console.log('Registration request submitted:', newRequest);
-
+      await registerMutation(payload).unwrap();
+      showSuccess('Account created successfully. Wait for approval');
       setSuccess(true);
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      showError(error?.data?.message || 'Registration failed');
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -147,33 +152,22 @@ const RegisterPage: React.FC = () => {
       {/* Register Card */}
       <div className="w-full max-w-md">
         <Card className="p-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold tracking-wider rounded-full mb-4">
-              REGISTRATION FORM
-            </div>
-            <h1 className="text-3xl font-extrabold text-[#0f172a] mb-2 tracking-tight">
-              Resident Registration
-            </h1>
-            <p className="text-gray-500 text-sm leading-relaxed">
-              Please provide your details and property information to register for the digital portal.
-            </p>
-          </div>
-
-          {/* Success Message */}
-          {success && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-blue-900 text-sm font-semibold">Waiting for Admin Approval</p>
-                <p className="text-blue-700 text-xs mt-1">Your account registration has been submitted successfully.</p>
-                <p className="text-blue-700 text-xs mt-1">An admin will review your documents and send you login credentials via email.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Registration Form */}
+          {/* Registration Form Wrapper */}
           {!success ? (
+            <div>
+              {/* Header */}
+              <div className="mb-8">
+                <div className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold tracking-wider rounded-full mb-4">
+                  REGISTRATION FORM
+                </div>
+                <h1 className="text-3xl font-extrabold text-[#0f172a] mb-2 tracking-tight">
+                  Resident Registration
+                </h1>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  Please provide your details and property information to register for the digital portal.
+                </p>
+              </div>
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Full Name Field */}
               <div>
@@ -412,26 +406,73 @@ const RegisterPage: React.FC = () => {
                 Create Account
               </Button>
             </form>
+            </div>
           ) : (
-            <div className="py-8 text-center">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Thank You for Registering!</h2>
-              <p className="text-gray-600 mb-6">
-                Please check your email for further instructions once the admin approves your account.
+            <div className="py-2 text-center flex flex-col items-center">
+              <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-8 border border-blue-100 shadow-sm">
+                <CheckCircle className="w-10 h-10 text-blue-600" />
+              </div>
+              
+              <h1 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">Registration Submitted Successfully</h1>
+              <p className="text-slate-500 text-sm font-medium leading-relaxed mb-12 max-w-sm">
+                Your account is currently being reviewed by our administration team. You will receive a notification via email once your access is approved.
+              </p>
+
+              {/* Advanced UI Stepper Block */}
+              <div className="w-full max-w-md mx-auto mb-14 relative hidden sm:block mt-6">
+                 {/* Background Tracking Line */}
+                 <div className="absolute top-5 left-[15%] right-[15%] h-[2px] bg-slate-100 z-0">
+                   <div className="h-full bg-blue-600 w-1/2"></div>
+                 </div>
+
+                 <div className="flex justify-between relative z-10 px-2 text-center">
+                    {/* Step 1: Submitted */}
+                    <div className="flex flex-col items-center gap-3 w-1/3">
+                       <div className="w-10 h-10 rounded-[12px] bg-blue-600 flex items-center justify-center text-white shadow-sm ring-[6px] ring-white">
+                          <Check className="w-5 h-5" strokeWidth={2.5} />
+                       </div>
+                       <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wide">Submitted</span>
+                    </div>
+
+                    {/* Step 2: Verification */}
+                    <div className="flex flex-col items-center gap-3 w-1/3">
+                       <div className="w-10 h-10 rounded-[12px] bg-white border-2 border-blue-600 flex items-center justify-center text-blue-600 shadow-sm ring-[6px] ring-white">
+                          <Hourglass className="w-5 h-5" strokeWidth={2} />
+                       </div>
+                       <span className="text-[11px] font-bold text-slate-900 uppercase tracking-wide">Admin Verification</span>
+                    </div>
+
+                    {/* Step 3: Granted */}
+                    <div className="flex flex-col items-center gap-3 w-1/3">
+                       <div className="w-10 h-10 rounded-[12px] bg-slate-50 flex items-center justify-center text-slate-400 ring-[6px] ring-white">
+                          <LogIn className="w-5 h-5" strokeWidth={2} />
+                       </div>
+                       <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Access Granted</span>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Exact Navigational Layout from Layout File */}
+              <div className="flex items-center gap-4 w-full max-w-sm mx-auto mb-12">
+                 <button 
+                  onClick={() => navigate(ROUTES.LOGIN)} 
+                  className="flex-1 bg-[#1855d4] hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md shadow-md shadow-blue-500/20 transition-all font-sans text-[15px]"
+                 >
+                   Return Home
+                 </button>
+                 <button 
+                  onClick={() => navigate(ROUTES.LOGIN)} 
+                  className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-semibold py-3 px-4 rounded-md transition-all font-sans text-[15px]"
+                 >
+                   Back to Login
+                 </button>
+              </div>
+
+              <p className="text-[15px] text-slate-600">
+                Need help? <a href="#" className="text-[#1855d4] hover:underline font-medium">Contact our support team.</a>
               </p>
             </div>
           )}
-
-          {/* Back to Login */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => navigate(ROUTES.LOGIN)}
-              className="w-full flex items-center justify-center gap-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Login
-            </button>
-          </div>
         </Card>
       </div>
 
