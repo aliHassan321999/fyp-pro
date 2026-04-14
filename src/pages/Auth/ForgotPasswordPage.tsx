@@ -8,6 +8,7 @@ import InputField from '@components/Common/InputField';
 import { PageMeta } from '@components/Common/PageMeta';
 import securityIcon from '../../assets/icons/security.svg';
 import verifiedIcon from '../../assets/icons/verified.svg';
+import { showSuccess, showError } from '@/utils/toast';
 
 const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +29,12 @@ const ForgotPasswordPage: React.FC = () => {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
+
+      if (email === "notfound@example.com") {
+        showError("Email does not exist");
+        return;
+      }
+      showSuccess("Reset instructions sent");
       // Pass the email state to the next screen if desired, e.g. using navigate state
       navigate(ROUTES.VERIFY_OTP, { state: { email } });
     }, 1000);
