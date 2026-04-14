@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { useAuth } from '@hooks/useAuth';
+import { useLoginMutation } from '@/features/auth/auth.api';
 import { ROUTES, ERROR_MESSAGES } from '@constants/index';
 import { LoginRequest, UserRole } from '@/types/common';
 import Card from '@components/Common/Card';
 import InputField from '@components/Common/InputField';
 import Button from '@components/Common/Button';
 import { PageMeta } from '@components/Common/PageMeta';
+import { showSuccess, showError } from '@/utils/toast';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuth();
+  const [loginMutation, { isLoading }] = useLoginMutation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,81 +36,7 @@ const LoginPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper function to determine user role and departmentId based on credentials
-  const determineUserRole = (emailOrUsername: string, password: string): { role: string; departmentId?: string } | null => {
-    // Mock database with departments and their staff
-    const mockDepartments = {
-      'DEPT-001': {
-        name: 'Maintenance',
-        headEmail: 'maintenance.head@company.com',
-        headPassword: 'maint123',
-        staff: [
-          { email: 'john.doe@company.com', password: 'staff123' },
-          { email: 'sarah.smith@company.com', password: 'staff123' },
-          { email: 'mike.wilson@company.com', password: 'staff123' },
-        ],
-      },
-      'DEPT-002': {
-        name: 'Utilities',
-        headEmail: 'utilities.head@company.com',
-        headPassword: 'utils123',
-        staff: [
-          { email: 'emma.brown@company.com', password: 'staff123' },
-          { email: 'james.davis@company.com', password: 'staff123' },
-        ],
-      },
-      'DEPT-003': {
-        name: 'Security',
-        headEmail: 'security.head@company.com',
-        headPassword: 'sec123',
-        staff: [
-          { email: 'alex.johnson@company.com', password: 'staff123' },
-          { email: 'lisa.anderson@company.com', password: 'staff123' },
-          { email: 'robert.taylor@company.com', password: 'staff123' },
-        ],
-      },
-      'DEPT-004': {
-        name: 'Landscaping',
-        headEmail: 'landscaping.head@company.com',
-        headPassword: 'land123',
-        staff: [
-          { email: 'david.miller@company.com', password: 'staff123' },
-          { email: 'sophia.white@company.com', password: 'staff123' },
-        ],
-      },
-    };
 
-    // Global admins and superadmins (access all departments)
-    const globalUsers: Record<string, { password: string; role: string }> = {
-      'admin@company.com': { password: 'admin123', role: 'admin' },
-      'superadmin@company.com': { password: 'superadmin123', role: 'superadmin' },
-      'test@gmail.com': { password: 'test123', role: 'resident' },
-    };
-
-    const emailLower = emailOrUsername.toLowerCase();
-
-    // Check global users first
-    const globalUser = globalUsers[emailLower];
-    if (globalUser && globalUser.password === password) {
-      return { role: globalUser.role };
-    }
-
-    // Check department heads and staff
-    for (const [deptId, dept] of Object.entries(mockDepartments)) {
-      // Check if department head
-      if (emailLower === dept.headEmail.toLowerCase() && password === dept.headPassword) {
-        return { role: 'department', departmentId: deptId };
-      }
-
-      // Check if staff member
-      const staffMember = dept.staff.find(s => s.email.toLowerCase() === emailLower);
-      if (staffMember && staffMember.password === password) {
-        return { role: 'staff', departmentId: deptId };
-      }
-    }
-
-    return null;
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,42 +47,32 @@ const LoginPage: React.FC = () => {
     }
 
     try {
-      // Determine user role and departmentId based on credentials
-      const authResult = determineUserRole(email, password);
-
-      if (!authResult) {
-        setApiError('Invalid email/username or password');
-        return;
-      }
-
-      // Create mock login request
-      const loginRequest: LoginRequest = {
-        email,
+      const loginPayload = {
+        emailOrUsername: email,
         password,
-        role: authResult.role as UserRole,
         rememberMe,
       };
 
-      // Call login with the auth info
-      await login(loginRequest);
+      // Strictly map the network mutation implicitly
+      const response = await loginMutation(loginPayload).unwrap();
+      const fetchedUser = response.data; // RTK returns the Express controller shape
 
-      // Store department ID if applicable
-      if (authResult.departmentId) {
-        localStorage.setItem('departmentId', authResult.departmentId);
-      }
+      showSuccess('Login successful');
 
-      // Navigate based on role
-      const roleRoutes: Record<UserRole, string> = {
+      // Dynamically detect user profile navigation mappings seamlessly
+      const roleRoutes: Record<string, string> = {
         resident: ROUTES.RESIDENT_DASHBOARD,
         staff: ROUTES.STAFF_DASHBOARD,
-        department: ROUTES.DEPARTMENT_DASHBOARD,
+        department_head: ROUTES.DEPARTMENT_DASHBOARD,
         admin: ROUTES.ADMIN_DASHBOARD,
         superadmin: ROUTES.SUPERADMIN_DASHBOARD,
       };
 
-      navigate(roleRoutes[authResult.role as UserRole]);
+      navigate(roleRoutes[fetchedUser.role] || ROUTES.LOGIN);
     } catch (error: any) {
-      setApiError(error.message || ERROR_MESSAGES.SERVER_ERROR);
+      const msg = error?.data?.message || 'Login failed';
+      setApiError(msg);
+      showError(msg);
     }
   };
 
@@ -178,9 +95,9 @@ const LoginPage: React.FC = () => {
           <button type="button" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
             Help Center
           </button>
-          <button 
-            type="button" 
-            onClick={() => navigate(ROUTES.REGISTER)} 
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.REGISTER)}
             className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg transition-colors shadow-sm"
           >
             Register
@@ -264,8 +181,8 @@ const LoginPage: React.FC = () => {
                       }
                     }}
                     className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.password
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-blue-500'
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:border-blue-500'
                       }`}
                   />
                   <button
