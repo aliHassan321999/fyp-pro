@@ -31,3 +31,4 @@ services:
 
 volumes:
   mongodb_data:
+# commit-marker: [2026-04-15 14:00:00] Add Docker configuration for containerized deployment
