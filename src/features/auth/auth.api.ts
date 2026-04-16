@@ -16,6 +16,18 @@ export const authApi = api.injectEndpoints({
         method: 'POST',
         data: credentials,
       }),
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          // Forcefully inject the logged-in user into the getMe cache instantly to prevent Route Bounces!
+          dispatch(
+            authApi.util.updateQueryData('getMe', undefined, () => {
+              return data as any;
+            })
+          );
+        } catch {}
+      },
+      invalidatesTags: ['Auth'],
     }),
     logout: builder.mutation<{ success: boolean; message: string }, void>({
       query: () => ({
@@ -24,7 +36,7 @@ export const authApi = api.injectEndpoints({
       }),
       invalidatesTags: ['Auth'], // Clearing auth tag resets the cached session
     }),
-    getMe: builder.query<AuthUser, void>({
+    getMe: builder.query<AuthResponse, void>({
       query: () => ({
         url: '/auth/me',
         method: 'GET',
