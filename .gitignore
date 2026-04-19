@@ -8,73 +8,14 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Dependencies
-node_modules
-dist
-dist-ssr
-*.local
+node_modules/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# OS/IDE junk
 .DS_Store
+.vscode/
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-
-# Build files
-/build
-/out
-
-# Non-Auth source folders (keeping Auth only)
-src/pages/Admin/
-src/pages/Resident/
-src/pages/Staff/
-src/pages/Department/
-src/pages/SuperAdmin/
-src/components/
-src/layouts/
-src/context/
-src/hooks/
-src/services/
-src/types/
-src/constants/
-
-# Documentation files
-DEVELOPMENT_CHECKLIST.md
-FILE_INDEX.md
-GETTING_STARTED.md
-INITIALIZATION_COMPLETE.md
-MULTI_DEPARTMENT_SYSTEM.md
-PROJECT_STRUCTURE.md
-QUEUE_AUTO_ASSIGNMENT_SYSTEM.md
-QUEUE_SYSTEM_REPORT.md
-QUICK_REFERENCE.md
-SETUP.md
-
-# Config files (tracked separately)
-postcss.config.js
-tailwind.config.js
-tsconfig.json
-tsconfig.node.json
-vite.config.ts
-
-# Root level app files (tracked separately)
-index.html
-src/App.tsx
-src/Root.tsx
-src/main.tsx
-src/index.css
-
-# Project files (tracked separately)
-package.json
-package-lock.json
-.env.example
-README.md
