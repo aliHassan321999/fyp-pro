@@ -5,8 +5,7 @@ export interface User {
   isActive: boolean;
   roleId: string;
   profile?: {
-    firstName: string;
-    lastName: string;
+    fullName?: string;
     phone?: string;
   };
   createdAt: string;
