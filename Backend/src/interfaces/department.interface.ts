@@ -2,6 +2,7 @@ import { Document, Types } from 'mongoose';
 
 export interface IDepartment extends Document {
   name: string;
+  keywords: string[];
   slaTargetHours: number;
   description?: string;
   headOfDepartment?: Types.ObjectId;

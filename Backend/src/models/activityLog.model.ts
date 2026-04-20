@@ -7,6 +7,10 @@ const activityLogSchema = new Schema<IActivityLog>(
       type: Schema.Types.ObjectId,
       ref: 'Complaint'
     },
+    departmentId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Department'
+    },
     targetUser: {
       type: Schema.Types.ObjectId,
       ref: 'User'

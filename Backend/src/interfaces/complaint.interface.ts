@@ -17,6 +17,11 @@ export interface IComplaint extends Document {
   
   attachedImages: string[];
   
+  location?: {
+    lat: number;
+    lng: number;
+  };
+  
   residentId: Types.ObjectId;
   departmentId: Types.ObjectId;
   assignedStaffId?: Types.ObjectId;

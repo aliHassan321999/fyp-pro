@@ -24,6 +24,11 @@ const complaintSchema = new Schema<IComplaint>(
     
     attachedImages: [{ type: String }],
     
+    location: {
+      lat: { type: Number },
+      lng: { type: Number }
+    },
+    
     residentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     departmentId: { type: Schema.Types.ObjectId, ref: 'Department', required: true },
     assignedStaffId: { type: Schema.Types.ObjectId, ref: 'User' }

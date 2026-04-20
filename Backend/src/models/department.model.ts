@@ -4,6 +4,7 @@ import { IDepartment } from '../interfaces/department.interface';
 const departmentSchema = new Schema<IDepartment>(
   {
     name: { type: String, required: true, unique: true },
+    keywords: { type: [String], default: [] },
     slaTargetHours: { 
       type: Number, 
       required: true 

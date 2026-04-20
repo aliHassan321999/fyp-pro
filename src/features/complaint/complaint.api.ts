@@ -32,7 +32,7 @@ export const complaintApi = api.injectEndpoints({
       }),
       providesTags: ['Complaint'],
     }),
-    createComplaint: builder.mutation<ComplaintResponse, CreateComplaintDto>({
+    createComplaint: builder.mutation<ComplaintResponse, CreateComplaintDto | FormData>({
       query: (body) => ({
         url: '/complaints',
         method: 'POST',

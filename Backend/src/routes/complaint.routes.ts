@@ -21,9 +21,13 @@ router.get('/', getComplaints);
 router.get('/:id', getComplaintById);
 router.get('/:id/activity', getComplaintActivity);
 
+import multer from 'multer';
+const upload = multer({ storage: multer.memoryStorage(), limits: { files: 3, fileSize: 5 * 1024 * 1024 } });
+
 router.post(
   '/', 
   requireRole(['resident']), 
+  upload.array('images', 3),
   createComplaint
 );
 

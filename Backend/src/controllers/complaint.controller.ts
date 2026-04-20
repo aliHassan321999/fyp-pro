@@ -6,6 +6,8 @@ import { ActivityLog } from '../models/activityLog.model';
 import { User } from '../models/user.model';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { IComplaint, ComplaintStatus, ComplaintPriority } from '../interfaces/complaint.interface';
+import { uploadBufferToCloudinary } from '../utils/cloudinary';
+import { classifyComplaint } from '../services/ai.service';
 
 /**
  * Resident creates a new complaint routing it to a department, automatically computing SLA.
@@ -13,27 +15,90 @@ import { IComplaint, ComplaintStatus, ComplaintPriority } from '../interfaces/co
 export const createComplaint = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
   try {
     const user = request.user!;
-    const { title, description, departmentId, priority, attachedImages, locationText } = request.body;
+    const { title, description, departmentId: payloadDeptId, priority: payloadPriority, lat, lng } = request.body;
 
-    const department = await Department.findById(departmentId);
-    if (!department) {
-       response.status(404).json({ success: false, message: 'Department not found to tie SLA' });
+    const allDepartments = await Department.find();
+    if (allDepartments.length === 0) {
+       response.status(500).json({ success: false, message: 'Critical Fault: No Departments available for routing.' });
        return;
     }
 
-    // SLA Calculation dynamically mapped from the specific Department standard
+    const validDepartmentsPayload = allDepartments.map(d => ({
+      name: d.name,
+      keywords: d.keywords || []
+    }));
+    
+    // Explicit AI Classification Pipeline
+    const aiContext = title && !title.includes('Automated Voice') ? `${title}. ${description}` : description;
+    const aiResult = await classifyComplaint(aiContext, validDepartmentsPayload);
+
+    let finalDepartmentId = payloadDeptId;
+    let finalPriority = payloadPriority || 'medium';
+
+    const fallbackTarget = allDepartments.find(d => 
+      d.name.trim().toLowerCase() === 'general' || 
+      d.name.trim().toLowerCase() === 'unassigned'
+    );
+    const fallbackDeptId = fallbackTarget ? fallbackTarget._id : allDepartments[0]._id;
+
+    if (aiResult) {
+       // Validate exact normalized match
+       const matchedDept = allDepartments.find(d => d.name.trim().toLowerCase() === aiResult.department.trim().toLowerCase());
+       
+       if (matchedDept) {
+          finalDepartmentId = matchedDept._id;
+       } else {
+          console.warn(`[AI Controller] Hallucinated/Unknown Department: ${aiResult.department}. Falling back to default.`);
+          finalDepartmentId = fallbackDeptId;
+       }
+
+       if (['low', 'medium', 'high', 'critical'].includes(aiResult.priority)) {
+          finalPriority = aiResult.priority;
+       }
+    } else {
+       // AI Service completely failed or timed out
+       finalDepartmentId = fallbackDeptId;
+       finalPriority = 'medium';
+    }
+
+    // Strict validation of the determined department
+    const department = await Department.findById(finalDepartmentId);
+    if (!department) {
+       response.status(500).json({ success: false, message: 'Department resolution pipeline failed completely.' });
+       return;
+    }
+
+    const attachedImages: string[] = [];
+    if (request.files && Array.isArray(request.files)) {
+      for (const file of request.files) {
+         try {
+           const url = await uploadBufferToCloudinary(file.buffer, 'complaints');
+           attachedImages.push(url);
+         } catch(e) {
+           console.error("[Backend] Cloudinary upload exception:", e);
+         }
+      }
+    }
+
+    let location;
+    if (lat && lng) {
+      location = { lat: Number(lat), lng: Number(lng) };
+    }
+
+    // SLA Calculation dynamically mapped from the absolute validated Department
     const slaDeadline = new Date(Date.now() + department.slaTargetHours * 60 * 60 * 1000);
 
     const complaint = await Complaint.create({
       title,
       description,
-      departmentId,
-      priority,
+      departmentId: finalDepartmentId,
+      priority: finalPriority,
       attachedImages,
-      locationText,
+      location,
       residentId: user._id,
-      status: 'open',
-      slaDeadline
+      status: 'pending',
+      slaDeadline,
+      assignedStaffId: null
     });
 
     await ActivityLog.create({
