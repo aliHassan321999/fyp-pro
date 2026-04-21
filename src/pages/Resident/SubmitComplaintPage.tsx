@@ -206,18 +206,15 @@ const SubmitComplaintPage: React.FC = () => {
             <Card variant="lg" className="p-10 border-t-8 border-t-blue-600 bg-white shadow-2xl relative overflow-hidden animate-in fade-in zoom-in duration-500">
                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full translate-x-1/2 -translate-y-1/2 opacity-50 pointer-events-none"></div>
                <CheckCircle className="w-20 h-20 text-blue-600 mx-auto mb-6" />
-               <h2 className="text-3xl font-bold text-slate-800 text-center tracking-tight mb-2">Issue Successfully Captured</h2>
-               <p className="text-slate-500 text-center mb-8">Our intelligent engine has structured and routed your request for immediate assessment.</p>
+               <h2 className="text-3xl font-bold text-slate-800 text-center tracking-tight mb-2">Complaint Submitted!</h2>
+               <p className="text-slate-500 text-center mb-8">Your complaint has been securely sent to the building management team.</p>
                
                <div className="bg-[#F1F5F9] rounded-2xl p-6">
-                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Ticket Reference ID</p>
+                 <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Complaint ID</p>
                  <p className="text-xl font-mono font-bold text-slate-800">{successPayload._id}</p>
                  
                  <div className="mt-4 pt-4 border-t border-slate-200">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Classification Status</p>
-                    <span className="inline-flex items-center gap-1.5 bg-blue-100/80 text-blue-800 font-bold text-xs px-3 py-1.5 rounded-lg uppercase tracking-wider">
-                      <CheckCircle className="w-3 h-3"/> {successPayload.status}
-                    </span>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Status: Waiting for assignment</p>
                  </div>
                </div>
             </Card>
@@ -238,16 +235,16 @@ const SubmitComplaintPage: React.FC = () => {
                    </div>
                 </div>
 
-                <h1 className="text-[2.75rem] leading-tight font-extrabold text-slate-900 tracking-tight mb-4">What demands our attention?</h1>
+                <h1 className="text-[2.75rem] leading-tight font-extrabold text-slate-900 tracking-tight mb-4">Submit a Complaint</h1>
                 <p className="text-slate-500 text-[1.1rem] max-w-lg mx-auto leading-relaxed mt-2">
-                  Detail the anomaly below. Our cognitive processor will instantly extract the context and deploy the appropriate resolution protocols.
+                  Please let us know how we can help. Your request will be securely sent to building management.
                 </p>
               </div>
 
               {apiError && (
                  <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl text-red-800 shadow-sm flex items-start gap-3">
                    <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5"/>
-                   <div><h3 className="font-bold mb-1">Upload Pipeline Exception</h3><p className="text-sm">{apiError}</p></div>
+                   <div><h3 className="font-bold mb-1">Submission Failed</h3><p className="text-sm">{apiError}</p></div>
                  </div>
               )}
 
@@ -259,7 +256,7 @@ const SubmitComplaintPage: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                          <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm">1</div>
-                         <h2 className="text-lg font-black text-slate-800 tracking-tight">Issue Details</h2>
+                         <h2 className="text-lg font-black text-slate-800 tracking-tight">Your Complaint</h2>
                       </div>
                       
                       <div className={`relative bg-[#F8FAFC] rounded-[1.5rem] border-2 transition-all duration-300 ${isListening ? 'border-red-300 bg-red-50/30' : 'border-slate-100 focus-within:border-blue-200 focus-within:bg-white focus-within:shadow-lg focus-within:shadow-blue-500/5'}`}>
@@ -304,7 +301,7 @@ const SubmitComplaintPage: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-black text-sm">2</div>
-                           <h2 className="text-lg font-black text-slate-800 tracking-tight">Visual Evidence</h2>
+                           <h2 className="text-lg font-black text-slate-800 tracking-tight">Photos</h2>
                         </div>
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">Max 3 / 5MB</span>
                       </div>
@@ -343,7 +340,7 @@ const SubmitComplaintPage: React.FC = () => {
                     <div className="space-y-5">
                       <div className="flex items-center gap-3">
                          <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-black text-sm">3</div>
-                         <h2 className="text-lg font-black text-slate-800 tracking-tight">Location Target</h2>
+                         <h2 className="text-lg font-black text-slate-800 tracking-tight">Location</h2>
                       </div>
                       
                       <div className="ml-[2.75rem]">
@@ -379,27 +376,11 @@ const SubmitComplaintPage: React.FC = () => {
                     {/* Submission Row */}
                     <div className="pt-8 pb-2 flex flex-col items-center gap-6 border-t-[3px] border-slate-50 mt-10">
                       
-                      {/* Status Tracker Relocated */}
-                      <div className="w-full max-w-sm flex flex-col gap-2 p-5 bg-[#F8FAFC] border-2 border-slate-100 rounded-2xl">
-                        <div className="flex justify-between items-end">
-                          <p className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">Submission Status</p>
-                          <p className="text-sm font-bold text-blue-600">{calculateProgress()}%</p>
-                        </div>
-                        <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner">
-                          <div className="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out" style={{ width: `${Math.max(5, calculateProgress())}%` }}></div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 px-5 py-3 bg-green-50 border border-green-100 rounded-full">
-                        <ShieldCheck className="w-4 h-4 text-green-600" />
-                        <span className="text-xs font-black text-green-700 uppercase tracking-widest">Private & Encrypted Node</span>
-                      </div>
-
                       <Button
                         type="submit"
                         className="w-full max-w-sm py-5 bg-blue-600 hover:bg-blue-700 hover:shadow-blue-500/25 font-bold text-lg rounded-[1.25rem] shadow-[0_8px_30px_rgba(37,99,235,0.25)] transition-all flex justify-center items-center gap-2 group mx-auto"
                       >
-                        Authenticate Deploy <Send className="w-5 h-5 transition-transform group-hover:translate-x-1.5"/>
+                        Review Complaint <Send className="w-5 h-5 transition-transform group-hover:translate-x-1.5"/>
                       </Button>
                     </div>
                   </form>
@@ -409,18 +390,30 @@ const SubmitComplaintPage: React.FC = () => {
               {step === 'confirm' && (
                 <Card variant="lg" className="p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 bg-white animate-in slide-in-from-right-4 duration-300 max-w-2xl mx-auto block">
                   <div className="mb-10 text-center">
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">Deployment Verification</h2>
-                    <p className="text-slate-500 text-base mt-2">Confirm the mapped details before our routing engine finalizes the node.</p>
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">Review & Submit</h2>
+                    <p className="text-slate-500 text-base mt-2">Review your complaint details before submitting.</p>
                   </div>
                   
                   <div className="space-y-6 mb-12 bg-[#F8FAFC] p-8 rounded-[1.5rem] border-2 border-slate-100">
                     <div>
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><FileText className="w-4 h-4"/> Transcription Sequence</p>
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><FileText className="w-4 h-4"/> Complaint Details</p>
                       <p className="text-lg font-medium text-slate-700 bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm leading-relaxed whitespace-pre-wrap">{formData.description}</p>
                     </div>
+
+                    <div className="pt-6 border-t border-slate-200">
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><Zap className="w-4 h-4"/> Assigned Department</p>
+                      <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex items-center gap-3">
+                         <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center"><Droplet className="w-5 h-5" /></div>
+                         <div>
+                           <p className="font-bold text-slate-800">Maintenance</p>
+                           <p className="text-sm font-medium text-slate-400">We identified this issue as Maintenance</p>
+                         </div>
+                      </div>
+                    </div>
+
                     {images.length > 0 && (
                       <div className="pt-6 border-t border-slate-200">
-                         <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><ImagePlus className="w-4 h-4"/> Payload Attachments ({images.length})</p>
+                         <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><ImagePlus className="w-4 h-4"/> Attached Photos ({images.length})</p>
                          <div className="flex gap-4">
                            {images.map((img, i) => (
                               <img key={i} src={URL.createObjectURL(img)} alt="preview" className="w-20 h-20 rounded-2xl object-cover border border-slate-200 shadow-sm" />
@@ -429,7 +422,7 @@ const SubmitComplaintPage: React.FC = () => {
                       </div>
                     )}
                     <div className="pt-6 border-t border-slate-200">
-                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><MapPin className="w-4 h-4"/> Geospatial Target</p>
+                      <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><MapPin className="w-4 h-4"/> Location</p>
                       <div className="flex items-center justify-between text-slate-700 font-bold bg-white p-5 rounded-2xl border border-slate-200/60 font-mono text-lg shadow-sm">
                         <div className="flex items-center gap-3">
                            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center"><CheckCircle className="w-4 h-4"/></div>
@@ -445,7 +438,7 @@ const SubmitComplaintPage: React.FC = () => {
                        disabled={isSubmitting}
                        className="flex-1 py-5 font-black bg-blue-600 text-white rounded-[1.25rem] shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all flex justify-center items-center text-lg"
                      >
-                       {isSubmitting ? <><Loader2 className="w-5 h-5 mr-3 animate-spin"/> Uploading Array...</> : 'Confirm & Deploy'}
+                       {isSubmitting ? <><Loader2 className="w-5 h-5 mr-3 animate-spin"/> Submitting...</> : 'Submit Complaint'}
                      </Button>
                      <Button
                        onClick={() => setStep('input')}

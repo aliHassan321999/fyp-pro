@@ -1,59 +1,46 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Star, ArrowLeft } from 'lucide-react';
-import { Button, Card, InputField } from '@components/Common';
+import { Button, Card } from '@components/Common';
 import { ROUTES } from '@constants/index';
+// @ts-ignore
+import { useSubmitComplaintFeedbackMutation, useGetComplaintDetailsQuery } from '@/features/complaint/complaint.api';
+import toast from 'react-hot-toast';
 
 const FeedbackFormPage: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  
+  const { data: detailsData } = useGetComplaintDetailsQuery(id as string, { skip: !id });
+  const complaint = detailsData?.data;
+  
+  const [submitFeedback, { isLoading }] = useSubmitComplaintFeedbackMutation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) {
-      alert('Please select a rating');
+      toast.error('Please select a rating before submitting.');
       return;
     }
-    // Submit feedback to API
-    console.log('Feedback submitted:', { id, rating, comment });
-    setSubmitted(true);
+    
+    if (complaint?.feedbackSubmitted) {
+      toast.error('Feedback was already submitted for this case.');
+      return;
+    }
+
+    try {
+      await submitFeedback({ id: id as string, rating, comment }).unwrap();
+      toast.success('Thank you! Your feedback has been recorded.');
+      navigate(ROUTES.RESIDENT_COMPLAINT_DETAIL.replace(':id', id as string), { state: { feedbackSuccess: true } });
+    } catch (error: any) {
+      toast.error(error?.data?.message || 'Failed to submit feedback.');
+    }
   };
 
-  if (submitted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card variant="md" className="max-w-md text-center p-8">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-secondary-900 mb-2">Thank You!</h2>
-          <p className="text-secondary-600 mb-6">
-            Your feedback has been submitted successfully. We appreciate your input and will use it
-            to improve our services.
-          </p>
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={() => navigate(ROUTES.RESIDENT_MY_COMPLAINTS)}
-          >
-            Back to My Complaints
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto pb-12 animate-in fade-in duration-300">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -63,7 +50,10 @@ const FeedbackFormPage: React.FC = () => {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-3xl font-bold text-secondary-900">Share Your Feedback</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Rate Your Experience</h1>
+          <p className="text-sm font-medium text-slate-500 mt-1">Help us improve by sharing your feedback</p>
+        </div>
       </div>
 
       <Card variant="md" className="p-8">
@@ -144,7 +134,9 @@ const FeedbackFormPage: React.FC = () => {
             <Button
               variant="outline"
               fullWidth
-              onClick={() => navigate(ROUTES.RESIDENT_MY_COMPLAINTS)}
+              disabled={isLoading}
+              onClick={() => navigate(-1)}
+              className="py-3"
             >
               Cancel
             </Button>
@@ -152,17 +144,23 @@ const FeedbackFormPage: React.FC = () => {
               variant="primary"
               fullWidth
               type="submit"
-              disabled={rating === 0}
+              disabled={rating === 0 || isLoading || complaint?.feedbackSubmitted}
+              className="py-3 font-bold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
             >
-              Submit Feedback
+              {isLoading ? 'Submitting...' : 'Submit Feedback'}
             </Button>
           </div>
 
           {/* Validation Message */}
           {rating === 0 && (
-            <p className="text-sm text-red-600 text-center">
-              Please select a rating before submitting
+            <p className="text-sm text-red-500 font-medium text-center">
+              Please select a rating before submitting.
             </p>
+          )}
+          {complaint?.feedbackSubmitted && (
+             <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-center mt-4">
+               <p className="text-sm text-red-600 font-bold">You have already submitted feedback for this incident.</p>
+             </div>
           )}
         </form>
       </Card>

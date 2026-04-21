@@ -1,451 +1,253 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff, Check, X } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { User as UserIcon, Mail, Phone, Home, Calendar, Camera, Save, Loader2, ShieldCheck, ArrowLeft, CreditCard } from 'lucide-react';
 import { useAuth } from '@hooks/useAuth';
-import { Button, Card } from '@components/Common';
-
-interface PasswordChangeForm {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
-
-interface PasswordError {
-  [key: string]: string;
-}
+import { Button } from '@components/Common';
+import { useNavigate } from 'react-router-dom';
+import { useUpdateProfileMutation } from '@/features/auth/auth.api';
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false,
-  });
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [passwordForm, setPasswordForm] = useState<PasswordChangeForm>({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  });
+  const [updateProfileApi, { isLoading: isSubmitting }] = useUpdateProfileMutation();
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [successMsg, setSuccessMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   
-  const [errors, setErrors] = useState<PasswordError>({});
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    fullName: user?.profile?.fullName || '',
+    phone: user?.profile?.phone || user?.profile?.phoneNumber || '',
+    cnic: user?.profile?.cnic || '',
+    houseNumber: user?.profile?.address?.houseNumber || '',
+    block: user?.profile?.address?.block || '',
+  });
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPasswordForm(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const imageUrl = URL.createObjectURL(file);
+      setProfileImage(imageUrl);
     }
   };
 
-  const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
-    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  const validatePasswordForm = (): boolean => {
-    const newErrors: PasswordError = {};
-
-    if (!passwordForm.currentPassword.trim()) {
-      newErrors.currentPassword = 'Current password is required';
-    }
-
-    if (!passwordForm.newPassword.trim()) {
-      newErrors.newPassword = 'New password is required';
-    } else if (passwordForm.newPassword.length < 8) {
-      newErrors.newPassword = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordForm.newPassword)) {
-      newErrors.newPassword = 'Password must contain uppercase, lowercase, and numbers';
-    }
-
-    if (!passwordForm.confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Confirm password is required';
-    } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    // Mock validation: check if current password is correct (in real app, validate with backend)
-    if (passwordForm.currentPassword !== 'resident123') {
-      newErrors.currentPassword = 'Current password is incorrect';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validatePasswordForm()) return;
-
-    setIsSubmitting(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+    
+    // Construct HTTP Form Data
+    const payload = new FormData();
+    payload.append('fullName', formData.fullName);
+    payload.append('phone', formData.phone);
+    payload.append('block', formData.block);
+    payload.append('houseNumber', formData.houseNumber);
+    
+    // Append binary file if modified
+    if (selectedFile) {
+      payload.append('avatar', selectedFile);
+    }
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      setSuccessMessage('Password changed successfully! ✅');
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error) {
-      setErrors({ submit: 'Failed to change password. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
+      const res = await updateProfileApi(payload).unwrap();
+      setSuccessMsg(res.message || 'Profile synchronized successfully! ✅');
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err: any) {
+      setErrorMsg(err.data?.message || 'Failed to update profile settings.');
+      setTimeout(() => setErrorMsg(''), 4000);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header Navigation */}
-      <nav className="flex items-center justify-between px-8 py-4 border-b border-gray-200 bg-white">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-blue-600 rounded flex items-center justify-center shadow-md">
-            <span className="text-white font-bold text-lg">👤</span>
-          </div>
-          <span className="text-base font-bold text-gray-900">Resident Profile</span>
+    <div className="min-h-screen bg-slate-50/50 flex flex-col md:flex-row pb-20 animate-fade-in">
+      {/* Left Sidebar Profile Orb */}
+      <div className="w-full md:w-1/3 xl:w-1/4 p-6 md:p-10 flex flex-col items-center border-r border-slate-200/60 bg-white/40">
+        
+        <div className="w-full flex justify-start mb-8">
+           <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-indigo-600 transition-colors flex items-center gap-1 text-sm font-bold">
+             <ArrowLeft className="w-4 h-4" /> Back
+           </button>
         </div>
-        <div className="flex items-center gap-6">
-          <button className="text-sm text-gray-700 hover:text-gray-900 font-medium transition-colors">
-            🔔
-          </button>
-          <button className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">
-          {user?.profile?.fullName?.charAt(0) || user?.email?.charAt(0)}
-          </button>
-        </div>
-      </nav>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-start p-8">
-        <div className="w-full max-w-3xl">
-          {/* Tab Navigation */}
-          <div className="flex gap-4 mb-8 border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`pb-4 px-4 font-medium text-sm transition-colors border-b-2 ${
-                activeTab === 'profile'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Profile Information
-            </button>
-            <button
-              onClick={() => setActiveTab('password')}
-              className={`pb-4 px-4 font-medium text-sm transition-colors border-b-2 ${
-                activeTab === 'password'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Change Password
-            </button>
+        {/* Profile Avatar Interactive Injector Module */}
+        <div className="relative group cursor-pointer mb-6" onClick={() => fileInputRef.current?.click()}>
+          <div className="w-40 h-40 rounded-full border-[6px] border-white shadow-xl bg-gradient-to-tr from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center overflow-hidden relative">
+            {profileImage ? (
+              <img src={profileImage} alt="Profile" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            ) : (
+              <span className="text-white text-6xl font-black">
+                {user?.profile?.fullName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+              </span>
+            )}
+            
+            {/* Dark Hover Masking layer */}
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center">
+              <Camera className="w-8 h-8 text-white mb-2" />
+              <span className="text-white text-[10px] font-black uppercase tracking-widest text-center px-2">Update Core Image</span>
+            </div>
           </div>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImageUpload} 
+            accept="image/*" 
+            className="hidden" 
+          />
+        </div>
 
-          {/* Profile Information Tab */}
-          {activeTab === 'profile' && (
-            <Card variant="lg" className="p-8 rounded-2xl shadow-sm">
-              <div className="space-y-8">
-                {/* Profile Header */}
-                <div className="flex items-center gap-6 pb-8 border-b border-gray-200">
-                  <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-                    {user?.profile?.fullName?.charAt(0) || user?.email?.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {user?.profile?.fullName || user?.email}
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-1">{user?.email}</p>
-                    <div className="mt-3 inline-block bg-blue-100 px-3 py-1 rounded-full">
-                      <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">
-                        {user?.role}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+        <h1 className="text-2xl font-black text-slate-800 tracking-tight text-center mb-1 line-clamp-1 w-full px-2">
+          {formData.fullName || user?.email}
+        </h1>
+        <p className="text-slate-400 text-sm font-semibold mb-8 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5"/> {user?.email}</p>
 
-                {/* Profile Details Grid */}
-                <div className="grid grid-cols-2 gap-6">
-                  {/* Full Name */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-2">
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={user?.profile?.fullName || ''}
-                      disabled
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={user?.email || ''}
-                      disabled
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-
-                  {/* Phone */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={user?.profile?.phone || user?.profile?.phoneNumber || ''}
-                      disabled
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-
-                  {/* Unit/Apartment Number */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-2">
-                      Unit/Apartment Number
-                    </label>
-                    <input
-                      type="text"
-                      value={user?.profile?.address?.houseNumber || 'N/A'}
-                      disabled
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-
-                  {/* Member Since */}
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-900 mb-2">
-                      Member Since
-                    </label>
-                    <input
-                      type="text"
-                      value={(user as any)?.createdAt ? new Date((user as any).createdAt).toLocaleDateString() : 'N/A'}
-                      disabled
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-                    />
-                  </div>
-                </div>
-
-                {/* Account Status */}
-                <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
-                  <p className="text-xs font-semibold text-blue-900 mb-2">Account Status</p>
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-                    <span className="text-sm text-blue-800">Active and Verified ✓</span>
-                  </div>
-                </div>
+        {/* Security / Registry badges */}
+        <div className="w-full space-y-3">
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-blue-50/50 border border-blue-100/60 shadow-sm transition-all hover:bg-blue-100/50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600"><ShieldCheck className="w-5 h-5"/></div>
+              <div>
+                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Account Type</p>
+                <p className="text-[13px] font-extrabold text-blue-900 uppercase tracking-widest">{user?.role}</p>
               </div>
-            </Card>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400"><Calendar className="w-5 h-5"/></div>
+              <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Member Since</p>
+                <p className="text-[13px] font-bold text-slate-700">{(user as any)?.createdAt ? new Date((user as any).createdAt).toLocaleDateString('en-US', { month: 'short', day:'numeric', year:'numeric' }) : 'Authentic Verified'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column Engine Payload */}
+      <div className="flex-1 p-6 md:p-12 xl:p-16">
+        <div className="max-w-3xl">
+          <div className="mb-10">
+            <h2 className="text-3xl font-bold text-slate-800 tracking-tight">Profile Information</h2>
+            <p className="text-slate-500 text-[15px] mt-1">Update your personal information and contact details.</p>
+          </div>
+
+          {/* Clean Success Flash Box */}
+          {successMsg && (
+            <div className="mb-8 p-4 bg-emerald-50 border border-emerald-200/60 rounded-2xl flex items-center gap-3 animate-fade-in shadow-sm">
+              <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-lg">✓</div>
+              <p className="text-emerald-800 font-bold text-sm tracking-wide">{successMsg}</p>
+            </div>
           )}
 
-          {/* Change Password Tab */}
-          {activeTab === 'password' && (
-            <Card variant="lg" className="p-8 rounded-2xl shadow-sm">
-              <div className="space-y-6">
-                {/* Header */}
-                <div className="pb-6 border-b border-gray-200">
-                  <h3 className="text-xl font-bold text-gray-900">Change Your Password</h3>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Keep your account secure by using a strong password.
-                  </p>
-                </div>
-
-                {/* Success Message */}
-                {successMessage && (
-                  <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-                    <div className="flex items-center gap-2">
-                      <Check className="w-5 h-5 text-blue-600" />
-                      <p className="text-sm text-blue-800 font-medium">{successMessage}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error Message */}
-                {errors.submit && (
-                  <div className="bg-red-50 border border-red-300 rounded-lg p-4">
-                    <div className="flex items-center gap-2">
-                      <X className="w-5 h-5 text-red-600" />
-                      <p className="text-sm text-red-800 font-medium">{errors.submit}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Password Form */}
-                <form onSubmit={handlePasswordSubmit} className="space-y-5">
-                  {/* Current Password */}
-                  <div>
-                    <label htmlFor="currentPassword" className="block text-xs font-medium text-gray-900 mb-2">
-                      Current Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="currentPassword"
-                        name="currentPassword"
-                        type={showPasswords.current ? 'text' : 'password'}
-                        value={passwordForm.currentPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Enter your current password"
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all pr-12 ${
-                          errors.currentPassword ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('current')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
-                      >
-                        {showPasswords.current ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                    {errors.currentPassword && (
-                      <p className="text-red-500 text-xs mt-1">{errors.currentPassword}</p>
-                    )}
-                  </div>
-
-                  {/* New Password */}
-                  <div>
-                    <label htmlFor="newPassword" className="block text-xs font-medium text-gray-900 mb-2">
-                      New Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="newPassword"
-                        name="newPassword"
-                        type={showPasswords.new ? 'text' : 'password'}
-                        value={passwordForm.newPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Enter your new password"
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all pr-12 ${
-                          errors.newPassword ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('new')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
-                      >
-                        {showPasswords.new ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                    {errors.newPassword && (
-                      <p className="text-red-500 text-xs mt-1">{errors.newPassword}</p>
-                    )}
-                    
-                    {/* Password Requirements */}
-                    {passwordForm.newPassword && (
-                      <div className="mt-3 bg-gray-50 p-3 rounded border border-gray-200">
-                        <p className="text-xs font-bold text-gray-900 mb-2">Password Requirements:</p>
-                        <ul className="space-y-1 text-xs">
-                          <li className={passwordForm.newPassword.length >= 8 ? 'text-blue-700' : 'text-gray-600'}>
-                            ✓ At least 8 characters
-                          </li>
-                          <li className={/[A-Z]/.test(passwordForm.newPassword) ? 'text-blue-700' : 'text-gray-600'}>
-                            ✓ One uppercase letter
-                          </li>
-                          <li className={/[a-z]/.test(passwordForm.newPassword) ? 'text-blue-700' : 'text-gray-600'}>
-                            ✓ One lowercase letter
-                          </li>
-                          <li className={/\d/.test(passwordForm.newPassword) ? 'text-blue-700' : 'text-gray-600'}>
-                            ✓ One number
-                          </li>
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-900 mb-2">
-                      Confirm New Password
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="confirmPassword"
-                        name="confirmPassword"
-                        type={showPasswords.confirm ? 'text' : 'password'}
-                        value={passwordForm.confirmPassword}
-                        onChange={handlePasswordChange}
-                        placeholder="Confirm your new password"
-                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all pr-12 ${
-                          errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('confirm')}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
-                      >
-                        {showPasswords.confirm ? (
-                          <EyeOff className="w-5 h-5" />
-                        ) : (
-                          <Eye className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>
-                    )}
-                  </div>
-
-                  {/* Submit Buttons */}
-                  <div className="flex gap-3 pt-4">
-                    <Button
-                      variant="primary"
-                      fullWidth
-                      type="submit"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? 'Updating Password...' : 'Change Password'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      fullWidth
-                      type="button"
-                      onClick={() => {
-                        setPasswordForm({
-                          currentPassword: '',
-                          newPassword: '',
-                          confirmPassword: '',
-                        });
-                        setErrors({});
-                      }}
-                    >
-                      Reset
-                    </Button>
-                  </div>
-                </form>
-
-                {/* Security Tips */}
-                <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
-                  <p className="text-xs font-semibold text-blue-900 mb-2">🔒 Security Tips:</p>
-                  <ul className="text-xs text-blue-800 space-y-1">
-                    <li>• Use a unique password you don't use elsewhere</li>
-                    <li>• Avoid using personal information (name, phone, etc.)</li>
-                    <li>• Never share your password with anyone</li>
-                    <li>• Change your password regularly for better security</li>
-                  </ul>
-                </div>
-              </div>
-            </Card>
+          {/* Clean Error Flash Box */}
+          {errorMsg && (
+            <div className="mb-8 p-4 bg-red-50 border border-red-200/60 rounded-2xl flex items-center gap-3 animate-fade-in shadow-sm">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600 font-bold text-lg">!</div>
+              <p className="text-red-800 font-bold text-sm tracking-wide">{errorMsg}</p>
+            </div>
           )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+              
+              {/* Full Name Node */}
+              <div className="space-y-2 md:col-span-2 group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 group-hover:text-indigo-500 transition-colors mb-2 pl-1">
+                  <UserIcon className="w-4 h-4" /> Full Name
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  placeholder="Enter your full name"
+                  className="w-full px-5 py-4 border border-slate-200 bg-white rounded-[1rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 transition-all font-medium text-slate-700 hover:border-slate-300 placeholder:text-slate-300"
+                />
+              </div>
+
+              {/* Phone Node */}
+              <div className="space-y-2 group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 group-hover:text-blue-500 transition-colors mb-2 pl-1">
+                  <Phone className="w-4 h-4" /> Contact Number
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  placeholder="+92 300 0000000"
+                  className="w-full px-5 py-4 border border-slate-200 bg-white rounded-[1rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 transition-all font-medium text-slate-700 hover:border-slate-300 placeholder:text-slate-300"
+                />
+              </div>
+
+              {/* CNIC Node (Read-Only) */}
+              <div className="space-y-2 group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-400 mb-2 pl-1">
+                  <CreditCard className="w-4 h-4" /> Gov CNIC (Verified)
+                </label>
+                <input
+                  type="text"
+                  value={user?.profile?.cnic || ''}
+                  disabled
+                  title="Your CNIC is verified and legally bound to your identity."
+                  className="w-full px-5 py-4 border border-slate-200 bg-slate-50/70 rounded-[1rem] shadow-inner text-slate-400 font-bold cursor-not-allowed"
+                />
+              </div>
+
+              {/* Spatial Block */}
+              <div className="space-y-2 group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 group-hover:text-blue-500 transition-colors mb-2 pl-1">
+                  <Home className="w-4 h-4" /> Block
+                </label>
+                <input
+                  type="text"
+                  name="block"
+                  value={formData.block}
+                  onChange={handleInputChange}
+                  placeholder="E.g. Block A"
+                  className="w-full px-5 py-4 border border-slate-200 bg-white rounded-[1rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/15 focus:border-blue-400 transition-all font-medium text-slate-700 hover:border-slate-300 placeholder:text-slate-300"
+                />
+              </div>
+
+              {/* Spatial Unit Address */}
+              <div className="space-y-2 group">
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-600 group-hover:text-amber-500 transition-colors mb-2 pl-1">
+                  <span className="w-4 h-4 flex items-center justify-center font-black">#</span> Unit / House Number
+                </label>
+                <input
+                  type="text"
+                  name="houseNumber"
+                  value={formData.houseNumber}
+                  onChange={handleInputChange}
+                  placeholder="E.g. 102"
+                  className="w-full px-5 py-4 border border-slate-200 bg-white rounded-[1rem] shadow-sm focus:outline-none focus:ring-4 focus:ring-amber-500/15 focus:border-amber-400 transition-all font-medium text-slate-700 hover:border-slate-300 placeholder:text-slate-300"
+                />
+              </div>
+
+            </div>
+
+            <div className="pt-8 border-t border-slate-100 flex justify-end">
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+                className="px-10 py-4 rounded-2xl text-[15px] font-bold bg-blue-600 hover:bg-slate-900 border-none text-white shadow-lg shadow-blue-200/50 hover:shadow-xl hover:shadow-slate-300 transition-all duration-300 hover:-translate-y-1 w-full sm:w-auto"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2 tracking-wide"><Loader2 className="w-5 h-5 animate-spin" /> Saving Changes...</span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2 tracking-wide"><Save className="w-5 h-5" /> Save Changes</span>
+                )}
+              </Button>
+            </div>
+
+          </form>
         </div>
       </div>
     </div>
