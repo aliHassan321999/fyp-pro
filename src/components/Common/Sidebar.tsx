@@ -18,6 +18,8 @@ import {
   TrendingUp,
   Zap,
   Plus,
+  User,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '@hooks/useAuth';
 import { ROUTES } from '@constants/index';
@@ -65,10 +67,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
                 icon: <History className="w-5 h-5" />,
                 path: ROUTES.RESIDENT_MY_COMPLAINTS,
               },
+            ],
+          },
+          {
+            title: 'Account',
+            items: [
               {
                 label: 'Profile',
-                icon: <Settings className="w-5 h-5" />,
-                path: ROUTES.RESIDENT_PROFILE,
+                icon: <User className="w-5 h-5" />,
+                path: ROUTES.PROFILE,
+              },
+              {
+                label: 'Help & Support',
+                icon: <HelpCircle className="w-5 h-5" />,
+                path: ROUTES.HELP_SUPPORT,
               },
             ],
           },
@@ -93,6 +105,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
                 label: 'Completed Work',
                 icon: <CheckCircle className="w-5 h-5" />,
                 path: '#',
+              },
+            ],
+          },
+          {
+            title: 'Support',
+            items: [
+              {
+                label: 'Profile',
+                icon: <User className="w-5 h-5" />,
+                path: ROUTES.PROFILE,
+              },
+              {
+                label: 'Help & Support',
+                icon: <HelpCircle className="w-5 h-5" />,
+                path: ROUTES.HELP_SUPPORT,
               },
             ],
           },
@@ -125,6 +152,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
               },
             ],
           },
+          {
+            title: 'Support',
+            items: [
+              {
+                label: 'Profile',
+                icon: <User className="w-5 h-5" />,
+                path: ROUTES.PROFILE,
+              },
+              {
+                label: 'Help & Support',
+                icon: <HelpCircle className="w-5 h-5" />,
+                path: ROUTES.HELP_SUPPORT,
+              },
+            ],
+          },
         ];
 
       case 'admin':
@@ -151,6 +193,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
                 label: 'Approve Residents',
                 icon: <CheckCircle className="w-5 h-5" />,
                 path: ROUTES.ADMIN_APPROVE_RESIDENTS,
+              },
+            ],
+          },
+          {
+            title: 'Support',
+            items: [
+              {
+                label: 'Profile',
+                icon: <User className="w-5 h-5" />,
+                path: ROUTES.PROFILE,
+              },
+              {
+                label: 'Help & Support',
+                icon: <HelpCircle className="w-5 h-5" />,
+                path: ROUTES.HELP_SUPPORT,
               },
             ],
           },
@@ -185,6 +242,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
                 label: 'Department Requests',
                 icon: <CheckCircle className="w-5 h-5" />,
                 path: ROUTES.SUPERADMIN_REQUESTS,
+              },
+            ],
+          },
+          {
+            title: 'Support',
+            items: [
+              {
+                label: 'Profile',
+                icon: <User className="w-5 h-5" />,
+                path: ROUTES.PROFILE,
+              },
+              {
+                label: 'Help & Support',
+                icon: <HelpCircle className="w-5 h-5" />,
+                path: ROUTES.HELP_SUPPORT,
               },
             ],
           },

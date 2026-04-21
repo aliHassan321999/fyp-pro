@@ -36,6 +36,10 @@ import SuperAdminAnalyticsPage from '@pages/SuperAdmin/AnalyticsPage';
 import SuperAdminReportsPage from '@pages/SuperAdmin/ReportsPage';
 import SuperAdminRequestsPage from '@pages/SuperAdmin/RequestsPage';
 
+// Common pages (available for all roles)
+import CommonProfilePage from '@pages/Common/ProfilePage';
+import HelpSupportPage from '@pages/Common/HelpSupportPage';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: string;
@@ -260,6 +264,24 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRole="superadmin">
             <SuperAdminRequestsPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Common Routes (Available to all authenticated users) */}
+      <Route
+        path={ROUTES.PROFILE}
+        element={
+          <ProtectedRoute>
+            <CommonProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.HELP_SUPPORT}
+        element={
+          <ProtectedRoute>
+            <HelpSupportPage />
           </ProtectedRoute>
         }
       />

@@ -77,6 +77,10 @@ export const ROUTES = {
   SUPERADMIN_ANALYTICS: '/superadmin/analytics',
   SUPERADMIN_REPORTS: '/superadmin/reports',
   SUPERADMIN_REQUESTS: '/superadmin/requests',
+
+  // Common Routes (Available to all roles)
+  PROFILE: '/profile',
+  HELP_SUPPORT: '/help-support',
 } as const;
 
 // API Endpoints
