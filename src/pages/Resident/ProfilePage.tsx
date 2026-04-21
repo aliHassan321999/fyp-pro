@@ -11,7 +11,7 @@ const ProfilePage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [updateProfileApi, { isLoading: isSubmitting }] = useUpdateProfileMutation();
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(user?.profile?.avatar || user?.profile?.profileImage || null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');

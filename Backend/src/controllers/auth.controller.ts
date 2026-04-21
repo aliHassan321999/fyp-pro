@@ -5,6 +5,7 @@ import { User } from '../models/user.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { sendEmail } from '../utils/email';
+import { uploadBufferToCloudinary } from '../utils/cloudinary';
 
 /**
  * Handle resident and staff registration securely.
@@ -287,5 +288,62 @@ export const getMe = async (request: AuthenticatedRequest, response: Response): 
     console.error('[AUTH CONTROLLER FATAL] getMe crashed:', error);
     const err = error as Error;
     response.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+};
+
+/**
+ * Update current user profile securely.
+ */
+export const updateMyProfile = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+  try {
+    const { fullName, phone, block, houseNumber } = request.body;
+    
+    // Strict requirement: Full name is conceptually mandatory for profile sync
+    if (!fullName) {
+      response.status(400).json({ success: false, message: 'Full name is strictly required.' });
+      return;
+    }
+
+    const user = await User.findById(request.user?.id);
+    if (!user) {
+      response.status(404).json({ success: false, message: 'Identity not found in database.' });
+      return;
+    }
+
+    // Safety: ensure profile + address containers exist
+    if (!user.profile) user.profile = { cnic: (user as any).profile?.cnic || 'N/A' };
+    if (!user.profile.address) user.profile.address = { block: '', houseNumber: '' };
+
+    // Handle Binary Avatar Payload via Cloudinary Integration
+    if (request.file) {
+      try {
+        const avatarUrl = await uploadBufferToCloudinary(request.file.buffer, 'profiles');
+        user.profile.avatar = avatarUrl;
+      } catch (cloudinaryErr) {
+        console.error('[PROFILE SYNC] Cloudinary Upload Failure:', cloudinaryErr);
+      }
+    }
+
+    // Secure Field Mapping (Manual keys prevent over-posting vulnerabilities)
+    user.profile.fullName = fullName || user.profile.fullName;
+    user.profile.phone = phone || user.profile.phone;
+    user.profile.address.block = block || user.profile.address.block;
+    user.profile.address.houseNumber = houseNumber || user.profile.address.houseNumber;
+
+    // Persist changes
+    await user.save();
+
+    console.log('[AUTH CONTROLLER] Profile Updated for:', user.email);
+    
+    // Return safe object (Schema .toObject already handles sensitive field stripping)
+    response.status(200).json({ 
+      success: true, 
+      message: 'Profile synchronized successfully! ✅',
+      data: user 
+    });
+  } catch (error) {
+    console.error('[AUTH CONTROLLER FATAL] updateMyProfile crashed:', error);
+    const err = error as Error;
+    response.status(500).json({ success: false, message: err.message || 'Server error during profile update' });
   }
 };

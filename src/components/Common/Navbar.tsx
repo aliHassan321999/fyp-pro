@@ -82,8 +82,18 @@ const Navbar: React.FC<NavbarProps> = ({ onMenuClick, sidebarOpen = true }) => {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center gap-2 p-2 hover:bg-blue-50 rounded-lg transition-colors duration-200"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                  {user?.profile?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 border border-gray-200">
+                  {user?.profile?.avatar || user?.profile?.profileImage ? (
+                    <img 
+                      src={user.profile.avatar || user.profile.profileImage} 
+                      alt="Profile" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-sm font-bold">
+                      {user?.profile?.fullName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
                 </div>
                 <div className="hidden sm:block text-left text-sm">
                   <p className="font-medium text-gray-900">

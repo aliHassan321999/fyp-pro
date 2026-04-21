@@ -6,7 +6,8 @@ import {
   GetComplaintActivityResponse,
   UpdateComplaintStatusDto,
   AssignComplaintDto,
-  GetStaffResponse
+  GetStaffResponse,
+  SubmitFeedbackDto
 } from './complaint.types';
 
 export const complaintApi = api.injectEndpoints({
@@ -62,6 +63,14 @@ export const complaintApi = api.injectEndpoints({
         method: 'GET',
       }),
     }),
+    submitComplaintFeedback: builder.mutation<ComplaintResponse, SubmitFeedbackDto>({
+      query: ({ id, rating, comment }) => ({
+        url: `/complaints/${id}/feedback`,
+        method: 'POST',
+        data: { rating, comment },
+      }),
+      invalidatesTags: ['Complaint'],
+    }),
   }),
 });
 
@@ -72,5 +81,6 @@ export const {
   useGetComplaintDetailsQuery,
   useGetComplaintActivityQuery,
   useAssignComplaintMutation,
-  useGetStaffQuery
+  useGetStaffQuery,
+  useSubmitComplaintFeedbackMutation
 } = complaintApi;

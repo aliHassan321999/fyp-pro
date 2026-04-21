@@ -43,7 +43,21 @@ export const authApi = api.injectEndpoints({
       }),
       providesTags: ['Auth'], // Subscribes to the auth session
     }),
+    updateProfile: builder.mutation<{ success: boolean; message: string; data: any }, FormData>({
+      query: (formData) => ({
+        url: '/auth/profile',
+        method: 'PATCH',
+        data: formData,
+      }),
+      invalidatesTags: ['Auth'],
+    }),
   }),
 });
 
-export const { useLoginMutation, useLogoutMutation, useGetMeQuery, useRegisterMutation } = authApi;
+export const { 
+  useLoginMutation, 
+  useLogoutMutation, 
+  useGetMeQuery, 
+  useRegisterMutation,
+  useUpdateProfileMutation 
+} = authApi;

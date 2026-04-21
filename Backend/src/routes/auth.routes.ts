@@ -1,6 +1,12 @@
 import express from 'express';
-import { register, login, logout, getMe, refresh } from '../controllers/auth.controller';
+import { register, login, logout, getMe, refresh, updateMyProfile } from '../controllers/auth.controller';
 import { requireAuth } from '../middleware/auth.middleware';
+import multer from 'multer';
+
+const upload = multer({ 
+  storage: multer.memoryStorage(), 
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 const router = express.Router();
 
@@ -16,5 +22,6 @@ router.post('/refresh', refresh);
 // Protected session lifecycle manipulations
 router.post('/logout', requireAuth, logout);
 router.get('/me', requireAuth, getMe);
+router.patch('/profile', requireAuth, upload.single('avatar'), updateMyProfile);
 
 export default router;

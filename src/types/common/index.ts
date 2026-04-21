@@ -1,21 +1,31 @@
 // User Roles
-export type UserRole = 'resident' | 'staff' | 'department' | 'admin' | 'superadmin';
+export type UserRole = 'resident' | 'staff' | 'department_head' | 'admin' | 'superadmin';
+
+export interface IAddress {
+  block: string;
+  houseNumber: string;
+}
+
+export interface IUserProfile {
+  fullName?: string;
+  phone?: string;
+  phoneNumber?: string;
+  cnic: string;
+  avatar?: string;
+  profileImage?: string; // Legacy support
+  address?: IAddress;
+}
 
 // Auth Types
 export interface User {
-  id: string;
-  username: string;
+  _id: string;
   email: string;
   role: UserRole;
-  departmentId?: string; // For staff, department head, and admin
-  firstName?: string;
-  lastName?: string;
-  avatar?: string;
-  phone?: string;
-  unitNumber?: string; // For residents: apartment/unit number
-  address?: string;
-  isVerified?: boolean;
+  profile: IUserProfile;
+  accountStatus: 'active' | 'pending' | 'suspended';
+  departmentId?: string;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LoginRequest {

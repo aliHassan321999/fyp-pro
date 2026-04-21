@@ -3,7 +3,6 @@ import { Document, Types } from 'mongoose';
 export interface IAddress {
   block: string;
   houseNumber: string;
-  floor?: number;
 }
 
 export interface IUserProfile {
@@ -12,6 +11,7 @@ export interface IUserProfile {
   phoneNumber?: string;
   cnic: string;
   proofDocumentUrl?: string;
+  avatar?: string;
   profileImage?: string;
   address?: IAddress;
 }

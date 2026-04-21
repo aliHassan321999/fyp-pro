@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Star, ArrowLeft } from 'lucide-react';
 import { Button, Card } from '@components/Common';
 import { ROUTES } from '@constants/index';
-// @ts-ignore
 import { useSubmitComplaintFeedbackMutation, useGetComplaintDetailsQuery } from '@/features/complaint/complaint.api';
 import toast from 'react-hot-toast';
 

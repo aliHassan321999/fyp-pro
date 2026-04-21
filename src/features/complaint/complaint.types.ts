@@ -12,6 +12,15 @@ export interface Complaint {
   slaDeadline?: string;
   createdAt: string;
   updatedAt: string;
+  feedbackSubmitted?: boolean;
+  feedbackRating?: number;
+  feedbackComment?: string;
+}
+
+export interface SubmitFeedbackDto {
+  id: string;
+  rating: number;
+  comment?: string;
 }
 
 export interface CreateComplaintDto {
