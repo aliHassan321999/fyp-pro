@@ -7,8 +7,8 @@ const complaintSchema = new Schema<IComplaint>(
     description: { type: String, required: true },
     status: { 
       type: String, 
-      enum: ['pending', 'assigned', 'in_progress', 'resolved', 'closed'],
-      default: 'pending' 
+      enum: ['pending', 'pending_assignment', 'assigned', 'in_progress', 'resolved', 'closed'],
+      default: 'pending_assignment' 
     },
     priority: { 
       type: String, 
@@ -28,6 +28,15 @@ const complaintSchema = new Schema<IComplaint>(
       lat: { type: Number },
       lng: { type: Number }
     },
+
+    // Ranking & Persistence
+    recommendedStaffIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+
+    // Feedback System
+    rating: { type: Number, min: 1, max: 5 },
+    feedbackComment: { type: String },
+    feedbackSubmittedAt: { type: Date },
+    resolutionRemarks: { type: String },
     
     residentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     departmentId: { type: Schema.Types.ObjectId, ref: 'Department', required: true },
@@ -36,7 +45,10 @@ const complaintSchema = new Schema<IComplaint>(
   { timestamps: true }
 );
 
-// Formal structural indexing for temporal Dashboard Aggregation bounding
+// Formal structural indexing for performance optimization
 complaintSchema.index({ createdAt: 1 });
+complaintSchema.index({ status: 1 });
+complaintSchema.index({ departmentId: 1 });
+complaintSchema.index({ assignedStaffId: 1 });
 
 export const Complaint = mongoose.model<IComplaint>('Complaint', complaintSchema);

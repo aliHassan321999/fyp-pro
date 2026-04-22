@@ -1,6 +1,6 @@
 import { Document, Types } from 'mongoose';
 
-export type ComplaintStatus = 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
+export type ComplaintStatus = 'pending' | 'pending_assignment' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
 export type ComplaintPriority = 'low' | 'medium' | 'high' | 'critical';
 
 export interface IComplaint extends Document {
@@ -21,6 +21,15 @@ export interface IComplaint extends Document {
     lat: number;
     lng: number;
   };
+
+  // Ranking & Recommendations
+  recommendedStaffIds: Types.ObjectId[];
+  
+  // Feedback System
+  rating?: number;
+  feedbackComment?: string;
+  feedbackSubmittedAt?: Date;
+  resolutionRemarks?: string;
   
   residentId: Types.ObjectId;
   departmentId: Types.ObjectId;
