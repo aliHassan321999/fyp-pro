@@ -1,0 +1,14 @@
+import { Document, Types } from 'mongoose';
+
+export interface IDepartment extends Document {
+  name: string;
+  keywords: string[];
+  slaTargetHours: number;
+  description?: string;
+  positions?: string[];
+  headOfDepartment?: Types.ObjectId;
+  isActive: boolean;
+  createdBy: Types.ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
