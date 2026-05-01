@@ -435,3 +435,4 @@ export const submitComplaintFeedback = async (request: AuthenticatedRequest, res
 # commit-marker: [2026-04-09 11:00:00] Add file attachment upload with Multer middleware
 # commit-marker: [2026-04-10 14:30:00] Integrate Cloudinary for complaint image storage
 # commit-marker: [2026-04-18 09:15:00] Implement custom AppError class for typed errors
+# commit-marker: [2026-05-01 10:00:00] Refactor complaint controller for code consistency
