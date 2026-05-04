@@ -519,3 +519,4 @@ export default SubmitComplaintPage;
 # commit-marker: [2026-03-16 14:45:00] Build SubmitComplaintPage with form validation
 # commit-marker: [2026-03-19 09:00:00] Add resident dashboard with complaint summary cards
 # commit-marker: [2026-04-11 10:15:00] Update complaint form to support image attachments
+# commit-marker: [2026-05-04 11:15:00] Implement dark mode support with CSS variables
