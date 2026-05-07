@@ -27,3 +27,4 @@ router.patch('/profile', requireAuth, upload.single('avatar'), updateMyProfile);
 export default router;
 # commit-marker: [2026-03-08 15:30:00] Setup auth routes with validation middleware
 # commit-marker: [2026-04-03 09:45:00] Create audit log routes for SuperAdmin access
+# commit-marker: [2026-05-07 13:00:00] Add integration tests for auth and complaint APIs
