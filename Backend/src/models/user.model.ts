@@ -7,7 +7,7 @@ const userSchema = new Schema<IUser>(
     password: { type: String, select: false },
     role: {
       type: String,
-      enum: ['admin', 'department_head', 'staff', 'resident'],
+      enum: ['admin', 'department_head', 'staff', 'resident', 'superadmin'],
       required: true
     },
     rank: {

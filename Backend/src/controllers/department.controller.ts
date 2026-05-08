@@ -5,8 +5,9 @@ import { User } from '../models/user.model';
 import { Complaint } from '../models/complaint.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { sendResponse } from '../utils/response';
 
-export const createDepartment = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const createDepartment = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     let { name, slaTargetHours, description } = request.body;
 
@@ -14,23 +15,20 @@ export const createDepartment = async (request: AuthenticatedRequest, response: 
     description = description?.trim();
 
     if (!name || slaTargetHours === undefined) {
-      response.status(400).json({ success: false, message: 'Name and SLA Target Hours are strictly required.' });
-      return;
+      return sendResponse(response, 400, false, 'Name and SLA Target Hours are strictly required.');
     }
 
     if (name.length > 100) {
-      response.status(400).json({ success: false, message: 'Department name cannot exceed 100 characters.' });
-      return;
+      return sendResponse(response, 400, false, 'Department name cannot exceed 100 characters.');
     }
+
     if (description && description.length > 300) {
-      response.status(400).json({ success: false, message: 'Description cannot exceed 300 characters.' });
-      return;
+      return sendResponse(response, 400, false, 'Description cannot exceed 300 characters.');
     }
 
     const slaNum = Number(slaTargetHours);
     if (!Number.isFinite(slaNum) || slaNum <= 0 || slaNum > 720) {
-      response.status(400).json({ success: false, message: 'SLA must be a valid number between 1 and 720 hours.' });
-      return;
+      return sendResponse(response, 400, false, 'SLA must be a valid number between 1 and 720 hours.');
     }
 
     const existingName = await Department.findOne({
@@ -38,26 +36,25 @@ export const createDepartment = async (request: AuthenticatedRequest, response: 
     });
 
     if (existingName) {
-      response.status(400).json({ success: false, message: 'Department already exists' });
-      return;
+      return sendResponse(response, 400, false, 'Department already exists');
     }
 
     const newDepartment = await Department.create({
       name,
       slaTargetHours: slaNum,
       description,
-      headOfDepartment: null,
+      headOfDepartment: undefined,
       createdBy: request.user?._id
     });
 
-    response.status(201).json({ success: true, data: newDepartment, message: 'Department created successfully.' });
+    return sendResponse(response, 201, true, 'Department created successfully.', newDepartment);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Something went wrong' });
+    return sendResponse(response, 500, false, err.message || 'Something went wrong');
   }
 };
 
-export const getDepartments = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getDepartments = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const departments = await Department.find()
       .populate('headOfDepartment', 'profile.fullName email')
@@ -74,19 +71,18 @@ export const getDepartments = async (request: AuthenticatedRequest, response: Re
       };
     }));
 
-    response.status(200).json({ success: true, count: departmentsWithStats.length, data: departmentsWithStats });
+    return sendResponse(response, 200, true, 'Departments retrieved successfully.', departmentsWithStats);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Something went wrong while fetching departments.' });
+    return sendResponse(response, 500, false, err.message || 'Something went wrong while fetching departments.');
   }
 };
 
 /**
  * GET /departments/:id
  * Returns a single department with head populated, staff count, and SLA metrics
- * computed from complaint aggregation. Also computes a trend (last 30 vs prev 30 days).
  */
-export const getDepartmentById = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getDepartmentById = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
 
@@ -94,8 +90,7 @@ export const getDepartmentById = async (request: AuthenticatedRequest, response:
       .populate('headOfDepartment', 'profile.fullName email rank');
 
     if (!department) {
-      response.status(404).json({ success: false, message: 'Department not found.' });
-      return;
+      return sendResponse(response, 404, false, 'Department not found.');
     }
 
     const staffCount = await User.countDocuments({ departmentId: id, role: 'staff' });
@@ -117,9 +112,7 @@ export const getDepartmentById = async (request: AuthenticatedRequest, response:
       {
         $group: {
           _id: null,
-          totalResolved: {
-            $sum: { $cond: [{ $eq: ['$status', 'resolved'] }, 1, 0] }
-          },
+          totalResolved: { $sum: { $cond: [{ $eq: ['$status', 'resolved'] }, 1, 0] } },
           slaOnTime: {
             $sum: {
               $cond: [
@@ -154,7 +147,6 @@ export const getDepartmentById = async (request: AuthenticatedRequest, response:
       }
     ]);
 
-    // Previous period (30-60 days ago) for trend
     const [prevMetrics] = await Complaint.aggregate([
       {
         $match: {
@@ -195,31 +187,27 @@ export const getDepartmentById = async (request: AuthenticatedRequest, response:
     if (currCompliance > prevCompliance + 2) trend = 'up';
     else if (currCompliance < prevCompliance - 2) trend = 'down';
 
-    response.status(200).json({
-      success: true,
-      data: {
-        ...department.toObject(),
-        staffCount,
-        slaMetrics: {
-          complianceRate,
-          totalResolved: currTotal,
-          totalBreached: currBreached,
-          avgResolutionHours,
-          trend
-        }
+    return sendResponse(response, 200, true, 'Department details retrieved', {
+      ...department.toObject(),
+      staffCount,
+      slaMetrics: {
+        complianceRate,
+        totalResolved: currTotal,
+        totalBreached: currBreached,
+        avgResolutionHours,
+        trend
       }
     });
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Failed to fetch department.' });
+    return sendResponse(response, 500, false, err.message || 'Failed to fetch department.');
   }
 };
 
 /**
  * GET /departments/:id/staff
- * Returns all staff in this department, each enriched with complaint performance stats.
  */
-export const getDepartmentStaff = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getDepartmentStaff = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
 
@@ -227,23 +215,19 @@ export const getDepartmentStaff = async (request: AuthenticatedRequest, response
       .select('profile.fullName email rank accountStatus createdAt');
 
     if (staffList.length === 0) {
-      response.status(200).json({ success: true, count: 0, data: [] });
-      return;
+      return sendResponse(response, 200, true, 'No staff found for this department', []);
     }
 
     const staffIds = staffList.map(s => s._id);
     const now = new Date();
 
-    // Aggregate complaint stats for all staff in one query
     const statsAgg = await Complaint.aggregate([
       { $match: { assignedStaffId: { $in: staffIds } } },
       {
         $group: {
           _id: '$assignedStaffId',
           assignedCount: {
-            $sum: {
-              $cond: [{ $in: ['$status', ['assigned', 'in_progress']] }, 1, 0]
-            }
+            $sum: { $cond: [{ $in: ['$status', ['assigned', 'in_progress']] }, 1, 0] }
           },
           resolvedCount: {
             $sum: { $cond: [{ $eq: ['$status', 'resolved'] }, 1, 0] }
@@ -274,7 +258,6 @@ export const getDepartmentStaff = async (request: AuthenticatedRequest, response
       }
     ]);
 
-    // Map stats by staff ID for O(1) lookup
     const statsMap = new Map(statsAgg.map(s => [s._id.toString(), s]));
 
     const enriched = staffList.map(staff => {
@@ -302,49 +285,41 @@ export const getDepartmentStaff = async (request: AuthenticatedRequest, response
       };
     });
 
-    response.status(200).json({ success: true, count: enriched.length, data: enriched });
+    return sendResponse(response, 200, true, 'Department staff retrieved successfully.', enriched);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Failed to fetch department staff.' });
+    return sendResponse(response, 500, false, err.message || 'Failed to fetch department staff.');
   }
 };
 
 /**
  * PATCH /departments/:id/assign-head
- * Assigns a staff member as the department head.
- * Validates: staff must belong to this department.
- * Rule: one department = one head. Old head is NOT demoted (role unchanged).
  */
-export const assignHead = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const assignHead = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
     const { staffId } = request.body;
 
     if (!staffId) {
-      response.status(400).json({ success: false, message: 'staffId is required.' });
-      return;
+      return sendResponse(response, 400, false, 'staffId is required.');
     }
 
     const department = await Department.findById(id);
     if (!department) {
-      response.status(404).json({ success: false, message: 'Department not found.' });
-      return;
+      return sendResponse(response, 404, false, 'Department not found.');
     }
 
     const staff = await User.findById(staffId);
     if (!staff) {
-      response.status(404).json({ success: false, message: 'Staff member not found.' });
-      return;
+      return sendResponse(response, 404, false, 'Staff member not found.');
     }
 
     if (staff.role !== 'staff' && staff.role !== 'department_head') {
-      response.status(400).json({ success: false, message: 'Only staff or department heads can be assigned as head.' });
-      return;
+      return sendResponse(response, 400, false, 'Only staff or department heads can be assigned as head.');
     }
 
     if (staff.departmentId?.toString() !== id) {
-      response.status(400).json({ success: false, message: 'Staff member must belong to this department to become head.' });
-      return;
+      return sendResponse(response, 400, false, 'Staff member must belong to this department to become head.');
     }
 
     const previousHeadId = department.headOfDepartment;
@@ -361,18 +336,17 @@ export const assignHead = async (request: AuthenticatedRequest, response: Respon
       meta: { departmentName: department.name }
     });
 
-    response.status(200).json({ success: true, message: `${staff.profile?.fullName || staff.email} has been assigned as department head.` });
+    return sendResponse(response, 200, true, `${staff.profile?.fullName || staff.email} has been assigned as department head.`);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Failed to assign department head.' });
+    return sendResponse(response, 500, false, err.message || 'Failed to assign department head.');
   }
 };
 
 /**
  * PATCH /departments/:id
- * Updates department name, description, and SLA target hours.
  */
-export const updateDepartment = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const updateDepartment = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
     let { name, slaTargetHours, description } = request.body;
@@ -382,22 +356,19 @@ export const updateDepartment = async (request: AuthenticatedRequest, response: 
 
     const department = await Department.findById(id);
     if (!department) {
-      response.status(404).json({ success: false, message: 'Department not found.' });
-      return;
+      return sendResponse(response, 404, false, 'Department not found.');
     }
 
     if (name && name !== department.name) {
       if (name.length > 100) {
-        response.status(400).json({ success: false, message: 'Department name cannot exceed 100 characters.' });
-        return;
+        return sendResponse(response, 400, false, 'Department name cannot exceed 100 characters.');
       }
       const conflict = await Department.findOne({
         _id: { $ne: id },
         name: { $regex: new RegExp(`^${name}$`, 'i') }
       });
       if (conflict) {
-        response.status(400).json({ success: false, message: 'Another department with this name already exists.' });
-        return;
+        return sendResponse(response, 400, false, 'Another department with this name already exists.');
       }
       department.name = name;
     }
@@ -405,16 +376,14 @@ export const updateDepartment = async (request: AuthenticatedRequest, response: 
     if (slaTargetHours !== undefined) {
       const slaNum = Number(slaTargetHours);
       if (!Number.isFinite(slaNum) || slaNum <= 0 || slaNum > 720) {
-        response.status(400).json({ success: false, message: 'SLA must be between 1 and 720 hours.' });
-        return;
+        return sendResponse(response, 400, false, 'SLA must be between 1 and 720 hours.');
       }
       department.slaTargetHours = slaNum;
     }
 
     if (description !== undefined) {
       if (description.length > 300) {
-        response.status(400).json({ success: false, message: 'Description cannot exceed 300 characters.' });
-        return;
+        return sendResponse(response, 400, false, 'Description cannot exceed 300 characters.');
       }
       department.description = description;
     }
@@ -428,32 +397,28 @@ export const updateDepartment = async (request: AuthenticatedRequest, response: 
       meta: { updatedFields: Object.keys(request.body) }
     });
 
-    response.status(200).json({ success: true, data: department, message: 'Department updated successfully.' });
+    return sendResponse(response, 200, true, 'Department updated successfully.', department);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Failed to update department.' });
+    return sendResponse(response, 500, false, err.message || 'Failed to update department.');
   }
 };
 
 /**
  * GET /departments/:id/recommend-staff
- * Aggregates workload and SLA parameters explicitly evaluating custom math rules to rank assignment optimally.
  */
-export const recommendStaff = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const recommendStaff = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
-    
+
     const staffAgg = await User.aggregate([
-      // 1. Constraints
-      { 
-        $match: { 
-          departmentId: new mongoose.Types.ObjectId(id), 
-          role: 'staff', 
-          accountStatus: 'active' 
-        } 
+      {
+        $match: {
+          departmentId: new mongoose.Types.ObjectId(id as string),
+          role: 'staff',
+          accountStatus: 'active'
+        }
       },
-      
-      // 2. Lookup existing queue
       {
         $lookup: {
           from: 'complaints',
@@ -462,8 +427,6 @@ export const recommendStaff = async (request: AuthenticatedRequest, response: Re
           as: 'ticketHistory'
         }
       },
-      
-      // 3. Extrapolate active vs resolved 
       {
         $addFields: {
           activeComplaints: {
@@ -497,8 +460,6 @@ export const recommendStaff = async (request: AuthenticatedRequest, response: Re
           }
         }
       },
-      
-      // 4. Heavy payload projection truncation
       {
         $project: {
           _id: 1,
@@ -516,21 +477,18 @@ export const recommendStaff = async (request: AuthenticatedRequest, response: Re
       let score_SLA = 0;
       let score_A = 0;
 
-      // Workload Non-linear Penalty 
       if (staff.activeComplaints >= 10) {
-        score_W = -50; 
+        score_W = -50;
       } else {
         score_W = Math.max(0, 40 - (Math.pow(staff.activeComplaints, 1.3) * 3));
       }
 
-      // SLA Penalty neutral bias
       if (staff.resolvedTotal === 0) {
-        score_SLA = 25; 
+        score_SLA = 25;
       } else {
         score_SLA = (staff.resolvedOnTime / staff.resolvedTotal) * 40;
       }
 
-      // Availability Matrix
       if (staff.activeComplaints === 0) {
         score_A = 20;
       } else if (staff.activeComplaints < 3) {
@@ -554,19 +512,70 @@ export const recommendStaff = async (request: AuthenticatedRequest, response: Re
       };
     });
 
-    // Multi-factor Array Sorting execution
     rankedStaff.sort((a, b) => {
       if (b.metrics.matchScore !== a.metrics.matchScore) return b.metrics.matchScore - a.metrics.matchScore;
       if (b.metrics.slaComplianceRate !== a.metrics.slaComplianceRate) return b.metrics.slaComplianceRate - a.metrics.slaComplianceRate;
       return a.metrics.activeComplaints - b.metrics.activeComplaints;
     });
 
-    // Rigid slicing preventing oversized arrays
     const topRecommendations = rankedStaff.slice(0, 3);
 
-    response.status(200).json({ success: true, count: topRecommendations.length, data: topRecommendations });
+    return sendResponse(response, 200, true, 'Staff recommendations retrieved successfully.', topRecommendations);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server Exception inside ranking model.' });
+    return sendResponse(response, 500, false, err.message || 'Server Exception ranking operators');
+  }
+};
+
+/**
+ * Retrieve specialized dashboard metrics for the Department Head
+ * Strict role and boundary constraints applied.
+ */
+export const getDepartmentHeadDashboard = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
+  try {
+    const user = request.user!;
+
+    if (!user.departmentId) {
+      return sendResponse(response, 403, false, 'User is not assigned to a valid department footprint.');
+    }
+
+    const deptId = user.departmentId;
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const now = new Date();
+    const twoHoursFromNow = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+    // Parallel optimized query execution avoiding N+1 blocks
+    const [unassigned, inProgress, resolvedToday, slaAtRisk, recentComplaints] = await Promise.all([
+      Complaint.countDocuments({ departmentId: deptId, status: 'pending_assignment' }),
+      Complaint.countDocuments({ departmentId: deptId, status: 'in_progress' }),
+      Complaint.countDocuments({ departmentId: deptId, status: 'resolved', resolvedAt: { $gte: startOfToday } }),
+      Complaint.countDocuments({
+        departmentId: deptId,
+        status: { $nin: ['resolved', 'closed'] }, // Safe logic matching requirement logic
+        slaDeadline: { $lte: twoHoursFromNow }
+      }),
+      Complaint.find({ departmentId: deptId })
+        .select('_id title status priority slaDeadline assignedStaffId departmentId createdAt')
+        .sort({ createdAt: -1 })
+        .limit(10)
+    ]);
+
+    const dashboardData = {
+      stats: {
+        unassigned,
+        inProgress,
+        resolvedToday,
+        slaAtRisk
+      },
+      recentComplaints
+    };
+
+    return sendResponse(response, 200, true, 'Department Head Dashboard retrieved successfully', dashboardData);
+  } catch (error) {
+    console.error('[getDepartmentHeadDashboard] Error:', error);
+    return sendResponse(response, 500, false, 'Server error extracting dashboard metadata');
   }
 };

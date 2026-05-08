@@ -11,7 +11,10 @@ export interface IComplaint extends Document {
   
   slaDeadline: Date;
   slaStatus: 'normal' | 'extended';
+  slaBreached: boolean;
   assignedAt?: Date;
+  lastAssignedAt?: Date;
+  reassignmentCount: number;
   resolvedAt?: Date;
   isActive: boolean;
   

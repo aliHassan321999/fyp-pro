@@ -8,6 +8,13 @@ dotenv.config();
 
 const users = [
   {
+    email: 'superadmin@test.com',
+    password: 'password123',
+    role: 'superadmin',
+    name: 'Super Admin',
+    cnic: '00000-0000000-0'
+  },
+  {
     email: 'admin@test.com',
     password: 'password123',
     role: 'admin',

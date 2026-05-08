@@ -2,11 +2,11 @@ import * as validate from 'validate.js';
 import validator from 'validator'
 
 /**
- * 1. Rule for MongoDB ObjectIDsnpm install -D @types/validate.js @types/validator
- * Ensures the string is exactly 
+ * 1. Rule for MongoDB ObjectIDs
+ * Ensures the string is exact
  * 24 hex characters so the database doesn't crash.
  */
-validate.validators.isMongoId = function (value: any) {
+(validate as any).validators.isMongoId = function (value: any) {
   // If the value is empty, we return null and let the 'presence' rule handle it.
   if (!value) return null;
 
@@ -21,7 +21,7 @@ validate.validators.isMongoId = function (value: any) {
  * 2. Rule for Mobile Phone Numbers
  * Uses the 'validator' library to check if it's a real, formatted phone number.
  */
-validate.validators.isPhone = function (value: any) {
+(validate as any).validators.isPhone = function (value: any) {
   if (!value) return null;
 
   if (!validator.isMobilePhone(value, 'any')) {
@@ -35,7 +35,7 @@ validate.validators.isPhone = function (value: any) {
  * 3. Rule for Pakistani CNICs
  * Ensures the value is exactly 13 numeric digits with no dashes or letters.
  */
-validate.validators.isCNIC = function (value: any) {
+(validate as any).validators.isCNIC = function (value: any) {
   if (!value) return null;
 
   // Regular expression: ^ means start, \d means digit, {13} means exactly 13 times, $ means end.

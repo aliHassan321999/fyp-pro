@@ -4,11 +4,12 @@ import { Complaint } from '../models/complaint.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { sendEmail } from '../utils/email';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { sendResponse } from '../utils/response';
 
 /**
  * Executes explicitly dynamic unified Global Analytics natively aggregating full clusters perfectly.
  */
-export const getGlobalAnalytics = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getGlobalAnalytics = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { startDate, endDate } = request.query;
 
@@ -32,7 +33,7 @@ export const getGlobalAnalytics = async (request: AuthenticatedRequest, response
 
     const defaultDateBounds = new Date();
 
-    const pipeline = [
+    const pipeline: any[] = [
       { $match: matchStage },
       {
         $facet: {
@@ -110,7 +111,7 @@ export const getGlobalAnalytics = async (request: AuthenticatedRequest, response
                 count: { $sum: 1 }
               }
             },
-            { $sort: { _id: 1 as 1|-1 } }
+            { $sort: { _id: 1 } }
           ],
           departments: [
             {
@@ -262,54 +263,49 @@ export const getGlobalAnalytics = async (request: AuthenticatedRequest, response
       ? Number(((safeSla.slaOnTimeResolved / safeOverview.resolvedComplaints) * 100).toFixed(1)) 
       : 0;
 
-    response.status(200).json({
-      success: true,
-      data: {
+    return sendResponse(response, 200, true, 'Global analytics retrieved', {
         overview: safeOverview,
         slaMetrics: { ...safeSla, slaComplianceRate },
         trends: resolvedPayload.trends || [],
         departments: resolvedPayload.departments || [],
         staff: resolvedPayload.staff || []
-      }
     });
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error explicitly executing Analytics Core' });
+    return sendResponse(response, 500, false, err.message || 'Server error explicitly executing Analytics Core');
   }
 };
 
 /**
  * Retrieves all users securely trapped in the pending approval queue.
  */
-export const getPendingUsers = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getPendingUsers = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const pendingUsers = await User.find({ accountStatus: 'pending' })
       .select('-password -refreshToken') // Heavily strict DB stripping
       .sort({ createdAt: -1 });
 
-    response.status(200).json({ success: true, data: pendingUsers });
+    return sendResponse(response, 200, true, 'Pending users retrieved', pendingUsers);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
 /**
  * Executes a hard approval explicitly switching status and notifying the user.
  */
-export const approveUser = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const approveUser = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
     const user = await User.findById(id);
 
     if (!user) {
-      response.status(404).json({ success: false, message: 'User not found in registry' });
-      return;
+      return sendResponse(response, 404, false, 'User not found in registry');
     }
 
     if (user.accountStatus !== 'pending') {
-      response.status(400).json({ success: false, message: 'Only heavily locked pending users can be approved' });
-      return;
+      return sendResponse(response, 400, false, 'Only heavily locked pending users can be approved');
     }
 
     user.accountStatus = 'active';
@@ -348,17 +344,17 @@ The Complaint Management Team`
       console.error("[Mail Error]:", emailErr);
     }
 
-    response.status(200).json({ success: true, message: 'User has been officially approved and activated.' });
+    return sendResponse(response, 200, true, 'User has been officially approved and activated.');
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
 /**
  * Executes a firm rejection keeping the footprint heavily logged but stripping access via 'suspended'.
  */
-export const rejectUser = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const rejectUser = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
     const { reason } = request.body;
@@ -366,13 +362,11 @@ export const rejectUser = async (request: AuthenticatedRequest, response: Respon
     const user = await User.findById(id);
 
     if (!user) {
-      response.status(404).json({ success: false, message: 'User not found in registry' });
-      return;
+      return sendResponse(response, 404, false, 'User not found in registry');
     }
 
     if (user.accountStatus !== 'pending') {
-      response.status(400).json({ success: false, message: 'Only heavily locked pending users can be formally rejected' });
-      return;
+      return sendResponse(response, 400, false, 'Only heavily locked pending users can be formally rejected');
     }
 
     user.accountStatus = 'suspended';
@@ -412,9 +406,9 @@ The Administration Team`
       console.error("[Mail Error]:", emailErr);
     }
 
-    response.status(200).json({ success: true, message: 'User has been officially rejected and suspended.' });
+    return sendResponse(response, 200, true, 'User has been officially rejected and suspended.');
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };

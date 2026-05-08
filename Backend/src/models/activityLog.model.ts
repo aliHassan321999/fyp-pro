@@ -32,9 +32,18 @@ const activityLogSchema = new Schema<IActivityLog>(
     },
     meta: {
       type: Schema.Types.Mixed
+    },
+    metadata: {
+      from: { type: String },
+      to: { type: String },
+      assignedTo: { type: Schema.Types.ObjectId, ref: 'User' },
+      message: { type: String }
     }
   },
   { timestamps: true }
 );
+
+activityLogSchema.index({ complaintId: 1 });
+activityLogSchema.index({ complaintId: 1, createdAt: 1 });
 
 export const ActivityLog = mongoose.model<IActivityLog>('ActivityLog', activityLogSchema);

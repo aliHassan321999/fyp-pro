@@ -5,21 +5,31 @@ import { Department } from '../models/department.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { sendEmail } from '../utils/email';
+import { sendResponse } from '../utils/response';
 
-export const createStaff = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const createStaff = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
-    const { fullName, email, password, phone, cnic, departmentId } = request.body;
+    const { fullName, email, password, phone, cnic, departmentId, rank } = request.body;
+    const user = request.user!;
+
+    // Department head can only create junior/standard staff, not senior
+    if (user.role === 'department_head' && (rank === 'senior' || !rank)) {
+      return sendResponse(response, 403, false, 'Department heads can only create junior or standard rank staff. Senior staff must be created by admin.');
+    }
+
+    // Department head can only create staff for their own department
+    if (user.role === 'department_head' && departmentId !== user.departmentId?.toString()) {
+      return sendResponse(response, 403, false, 'You can only create staff for your own department.');
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      response.status(400).json({ success: false, message: 'Email is already taken natively.' });
-      return;
+      return sendResponse(response, 400, false, 'Email is already taken.');
     }
 
     const existingCnic = await User.findOne({ 'profile.cnic': cnic });
     if (existingCnic) {
-      response.status(400).json({ success: false, message: 'CNIC explicitly maps to another resident or staff.' });
-      return;
+      return sendResponse(response, 400, false, 'CNIC already exists in the system.');
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -29,9 +39,9 @@ export const createStaff = async (request: AuthenticatedRequest, response: Respo
       email,
       password: hashedPassword,
       role: 'staff',
-      rank: 'junior',
+      rank: rank || 'junior',
       accountStatus: 'active',
-      departmentId: departmentId || null,
+      departmentId: departmentId || (user.role === 'department_head' ? user.departmentId : null),
       profile: {
         fullName,
         phone,
@@ -41,11 +51,12 @@ export const createStaff = async (request: AuthenticatedRequest, response: Respo
 
     await ActivityLog.create({
       action: 'staff_created',
-      performedBy: request.user?._id,
+      performedBy: user._id,
       targetUser: newUser._id,
-      departmentId: departmentId || undefined,
+      departmentId: departmentId || (user.role === 'department_head' ? user.departmentId : undefined),
       meta: {
-        departmentAssigned: !!departmentId
+        departmentAssigned: !!departmentId || user.role === 'department_head',
+        rank: rank || 'junior'
       }
     });
 
@@ -77,49 +88,52 @@ Administration Team`
     const userPayload = newUser.toObject();
     delete userPayload.password;
 
-    response.status(201).json({ success: true, data: userPayload, message: 'Staff member created securely and email dispatched.' });
+    return sendResponse(response, 201, true, 'Staff member created successfully.', userPayload);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error globally' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
-export const assignStaffDepartment = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const assignStaffDepartment = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
     const { departmentId } = request.body;
+    const user = request.user!;
 
-    const user = await User.findById(id);
-    if (!user) {
-      response.status(404).json({ success: false, message: 'Staff member not found.' });
-      return;
+    // Department head can only assign to their own department
+    if (user.role === 'department_head' && user.departmentId?.toString() !== departmentId) {
+      return sendResponse(response, 403, false, 'You can only assign staff to your own department.');
     }
-    if (user.role !== 'staff') {
-      response.status(400).json({ success: false, message: 'Target user is not a staff member.' });
-      return;
+
+    const staffMember = await User.findById(id);
+    if (!staffMember) {
+      return sendResponse(response, 404, false, 'Staff member not found.');
+    }
+    if (staffMember.role !== 'staff') {
+      return sendResponse(response, 400, false, 'Target user is not a staff member.');
     }
 
     const department = await Department.findById(departmentId);
     if (!department) {
-      response.status(404).json({ success: false, message: 'Department not found.' });
-      return;
+      return sendResponse(response, 404, false, 'Department not found.');
     }
 
-    user.departmentId = department._id as any;
-    await user.save();
+    staffMember.departmentId = department._id as any;
+    await staffMember.save();
 
     await ActivityLog.create({
       action: 'staff_assigned',
-      performedBy: request.user?._id,
-      targetUser: user._id,
+      performedBy: user._id,
+      targetUser: staffMember._id,
       departmentId: department._id,
       meta: { newDepartment: department._id }
     });
 
-    response.status(200).json({ success: true, message: 'Staff successfully attached to target department.' });
+    return sendResponse(response, 200, true, 'Staff successfully assigned to department.');
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error tracking assignment.' });
+    return sendResponse(response, 500, false, err.message || 'Server error tracking assignment.');
   }
 };
 
@@ -129,7 +143,7 @@ export const assignStaffDepartment = async (request: AuthenticatedRequest, respo
  *   ?unassigned=true  → staff with no department
  *   ?departmentId=xxx → staff in a specific department (for transfer modal)
  */
-export const getStaffMembers = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getStaffMembers = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const user = request.user!;
     const { unassigned, departmentId } = request.query;
@@ -159,10 +173,10 @@ export const getStaffMembers = async (request: AuthenticatedRequest, response: R
       createdAt: s.createdAt
     }));
 
-    response.status(200).json({ success: true, count: formattedStaff.length, data: formattedStaff });
+    return sendResponse(response, 200, true, 'Staff members retrieved', formattedStaff);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
@@ -171,19 +185,17 @@ export const getStaffMembers = async (request: AuthenticatedRequest, response: R
  * Cycles rank: junior → standard → senior.
  * Rejects if already senior. Logs the promotion.
  */
-export const promoteStaff = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const promoteStaff = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
 
     const user = await User.findById(id);
     if (!user) {
-      response.status(404).json({ success: false, message: 'Staff member not found.' });
-      return;
+      return sendResponse(response, 404, false, 'Staff member not found.');
     }
 
     if (user.role !== 'staff') {
-      response.status(400).json({ success: false, message: 'Promotion is only applicable to staff members.' });
-      return;
+      return sendResponse(response, 400, false, 'Promotion is only applicable to staff members.');
     }
 
     const rankProgression: Record<string, string> = {
@@ -195,8 +207,7 @@ export const promoteStaff = async (request: AuthenticatedRequest, response: Resp
     const nextRank = rankProgression[currentRank];
 
     if (!nextRank) {
-      response.status(400).json({ success: false, message: 'This staff member is already at the highest rank (Senior).' });
-      return;
+      return sendResponse(response, 400, false, 'This staff member is already at the highest rank (Senior).');
     }
 
     const oldRank = currentRank;
@@ -213,14 +224,10 @@ export const promoteStaff = async (request: AuthenticatedRequest, response: Resp
       meta: { staffName: user.profile?.fullName }
     });
 
-    response.status(200).json({
-      success: true,
-      message: `${user.profile?.fullName || user.email} has been promoted from ${oldRank} to ${nextRank}.`,
-      data: { newRank: nextRank }
-    });
+    return sendResponse(response, 200, true, `${user.profile?.fullName || user.email} has been promoted from ${oldRank} to ${nextRank}.`, { newRank: nextRank });
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Failed to promote staff member.' });
+    return sendResponse(response, 500, false, err.message || 'Failed to promote staff member.');
   }
 };
 
@@ -229,35 +236,28 @@ export const promoteStaff = async (request: AuthenticatedRequest, response: Resp
  * Sets departmentId to null, effectively removing staff from their department.
  * Blocked if the user is currently the department head.
  */
-export const removeStaffFromDepartment = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const removeStaffFromDepartment = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
 
     const user = await User.findById(id);
     if (!user) {
-      response.status(404).json({ success: false, message: 'Staff member not found.' });
-      return;
+      return sendResponse(response, 404, false, 'Staff member not found.');
     }
 
     if (user.role !== 'staff') {
-      response.status(400).json({ success: false, message: 'Only staff members can be removed from a department.' });
-      return;
+      return sendResponse(response, 400, false, 'Only staff members can be removed from a department.');
     }
 
     if (!user.departmentId) {
-      response.status(400).json({ success: false, message: 'This staff member is not assigned to any department.' });
-      return;
+      return sendResponse(response, 400, false, 'This staff member is not assigned to any department.');
     }
 
     // Block removal if this user is the current department head
     const { Department } = await import('../models/department.model');
     const dept = await Department.findOne({ headOfDepartment: user._id });
     if (dept) {
-      response.status(400).json({
-        success: false,
-        message: `Cannot remove ${user.profile?.fullName || user.email} — they are the current head of "${dept.name}". Assign a new head first.`
-      });
-      return;
+      return sendResponse(response, 400, false, `Cannot remove ${user.profile?.fullName || user.email} — they are the current head of "${dept.name}". Assign a new head first.`);
     }
 
     const oldDepartmentId = user.departmentId;
@@ -272,9 +272,9 @@ export const removeStaffFromDepartment = async (request: AuthenticatedRequest, r
       meta: { staffName: user.profile?.fullName }
     });
 
-    response.status(200).json({ success: true, message: `${user.profile?.fullName || user.email} has been removed from their department.` });
+    return sendResponse(response, 200, true, `${user.profile?.fullName || user.email} has been removed from their department.`);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Failed to remove staff from department.' });
+    return sendResponse(response, 500, false, err.message || 'Failed to remove staff from department.');
   }
 };

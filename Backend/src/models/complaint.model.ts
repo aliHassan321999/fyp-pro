@@ -18,7 +18,10 @@ const complaintSchema = new Schema<IComplaint>(
     
     slaDeadline: { type: Date, required: true },
     slaStatus: { type: String, enum: ['normal', 'extended'], default: 'normal' },
+    slaBreached: { type: Boolean, default: false },
     assignedAt: { type: Date },
+    lastAssignedAt: { type: Date },
+    reassignmentCount: { type: Number, default: 0 },
     resolvedAt: { type: Date },
     isActive: { type: Boolean, default: true },
     
@@ -50,5 +53,7 @@ complaintSchema.index({ createdAt: 1 });
 complaintSchema.index({ status: 1 });
 complaintSchema.index({ departmentId: 1 });
 complaintSchema.index({ assignedStaffId: 1 });
+complaintSchema.index({ departmentId: 1, status: 1 });
+complaintSchema.index({ assignedStaffId: 1, status: 1 });
 
 export const Complaint = mongoose.model<IComplaint>('Complaint', complaintSchema);

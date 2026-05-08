@@ -6,7 +6,8 @@ import {
   getDepartmentStaff,
   assignHead,
   updateDepartment,
-  recommendStaff
+  recommendStaff,
+  getDepartmentHeadDashboard
 } from '../controllers/department.controller';
 import { requireAuth, requireRole } from '../middleware/auth.middleware';
 
@@ -17,6 +18,9 @@ router.use(requireAuth);
 // Collection routes
 router.post('/', requireRole(['admin']), createDepartment);
 router.get('/', requireRole(['admin']), getDepartments);
+
+// Head Dashboard (MUST be before /:id routes)
+router.get('/head/dashboard', requireRole(['department_head']), getDepartmentHeadDashboard);
 
 // Single department routes
 router.get('/:id/recommend-staff', requireRole(['admin', 'department_head']), recommendStaff);
