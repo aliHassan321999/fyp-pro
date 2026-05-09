@@ -521,3 +521,4 @@ export default SubmitComplaintPage;
 # commit-marker: [2026-04-11 10:15:00] Update complaint form to support image attachments
 # commit-marker: [2026-05-04 11:15:00] Implement dark mode support with CSS variables
 # commit-marker: [2026-05-05 14:45:00] Add responsive mobile layout for complaint pages
+# commit-marker: [2026-05-09 11:30:00] Improve error messages on frontend form validation
