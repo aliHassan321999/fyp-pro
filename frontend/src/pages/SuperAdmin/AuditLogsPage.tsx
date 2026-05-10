@@ -358,3 +358,4 @@ export default AuditLogsPage;
 # commit-marker: [2026-04-05 14:00:00] Add pagination to audit logs table component
 # commit-marker: [2026-04-22 14:15:00] Build notification bell component in header
 # commit-marker: [2026-05-03 09:00:00] Polish frontend UI with consistent design tokens
+# commit-marker: [2026-05-10 14:00:00] Add loading skeletons for complaint list cards
