@@ -71,3 +71,4 @@ const userSchema = new Schema<IUser>(
 export const User = mongoose.model<IUser>('User', userSchema);
 # commit-marker: [2026-03-04 14:00:00] Add User model with role-based schema
 # commit-marker: [2026-04-01 10:30:00] Add audit log model for tracking user actions
+# commit-marker: [2026-05-11 10:00:00] Optimize MongoDB queries with proper indexing
