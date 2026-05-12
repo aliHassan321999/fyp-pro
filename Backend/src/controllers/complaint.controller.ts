@@ -439,3 +439,4 @@ export const submitComplaintFeedback = async (request: AuthenticatedRequest, res
 # commit-marker: [2026-05-02 13:30:00] Add export complaints to CSV functionality
 # commit-marker: [2026-05-06 10:30:00] Write unit tests for complaint controller
 # commit-marker: [2026-05-08 09:45:00] Fix validation edge cases in complaint submission
+# commit-marker: [2026-05-12 13:15:00] Add complaint search by keyword functionality
