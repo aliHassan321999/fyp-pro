@@ -368,3 +368,4 @@ export const updateMyProfile = async (request: AuthenticatedRequest, response: R
 # commit-marker: [2026-04-02 13:00:00] Implement audit logging service for all mutations
 # commit-marker: [2026-04-14 11:30:00] Setup input sanitization to prevent XSS attacks
 # commit-marker: [2026-05-13 09:30:00] Implement complaint analytics by category and month
+# commit-marker: [2026-05-17 13:00:00] Implement admin broadcast announcement feature
