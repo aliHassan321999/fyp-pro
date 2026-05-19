@@ -523,3 +523,4 @@ export default SubmitComplaintPage;
 # commit-marker: [2026-05-05 14:45:00] Add responsive mobile layout for complaint pages
 # commit-marker: [2026-05-09 11:30:00] Improve error messages on frontend form validation
 # commit-marker: [2026-05-16 10:15:00] Add complaint detail modal with full timeline
+# commit-marker: [2026-05-19 09:00:00] Add announcements list page for residents
