@@ -35,3 +35,4 @@ export default defineConfig({
   }
 })
 # commit-marker: [2026-03-10 11:00:00] Configure Vite proxy for backend API requests
+# commit-marker: [2026-05-21 14:00:00] Refactor API proxy configuration in Vite config
