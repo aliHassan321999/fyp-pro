@@ -5,6 +5,7 @@ export interface IDepartment extends Document {
   keywords: string[];
   slaTargetHours: number;
   description?: string;
+  positions?: string[];
   headOfDepartment?: Types.ObjectId;
   isActive: boolean;
   createdBy: Types.ObjectId;

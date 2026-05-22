@@ -5,6 +5,7 @@ const departmentSchema = new Schema<IDepartment>(
   {
     name: { type: String, required: true, unique: true },
     keywords: { type: [String], default: [] },
+    positions: { type: [String], default: [] },
     slaTargetHours: { 
       type: Number, 
       required: true 

@@ -1,250 +1,223 @@
-import React from 'react';
-import { TrendingUp, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock, CheckCircle2, AlertCircle, Loader } from 'lucide-react';
 import { Card } from '@components/Common';
+import { useAuth } from '@hooks/useAuth';
+import axios from 'axios';
+
+interface StaffPerformance {
+  _id: string;
+  profile: {
+    fullName: string;
+  };
+  assignedComplaints: number;
+  completedComplaints: number;
+  pendingComplaints: number;
+}
 
 const DepartmentPerformancePage: React.FC = () => {
-  const performanceMetrics = [
-    {
-      title: 'Average Resolution Time',
-      value: '3.2 days',
-      trend: 'down',
-      change: '12% faster than last month',
-      icon: Clock,
-      color: 'bg-blue-100',
-      textColor: 'text-blue-700',
-    },
-    {
-      title: 'Completion Rate',
-      value: '94%',
-      trend: 'up',
-      change: '+3% from last month',
-      icon: CheckCircle2,
-      color: 'bg-blue-100',
-      textColor: 'text-blue-700',
-    },
-    {
-      title: 'Customer Satisfaction',
-      value: '4.6/5.0',
-      trend: 'up',
-      change: '+0.2 from last month',
-      icon: TrendingUp,
-      color: 'bg-purple-100',
-      textColor: 'text-purple-700',
-    },
-    {
-      title: 'Pending Issues',
-      value: '8',
-      trend: 'down',
-      change: '-50% from last month',
-      icon: AlertCircle,
-      color: 'bg-yellow-100',
-      textColor: 'text-yellow-700',
-    },
-  ];
+  const { user } = useAuth();
+  const [staffPerformance, setStaffPerformance] = useState<StaffPerformance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const staffPerformance = [
-    {
-      name: 'John Smith',
-      position: 'Senior Technician',
-      assignedComplaints: 12,
-      completedComplaints: 11,
-      averageTime: '2.8 days',
-      satisfaction: 4.8,
-    },
-    {
-      name: 'Sarah Johnson',
-      position: 'Maintenance Supervisor',
-      assignedComplaints: 10,
-      completedComplaints: 10,
-      averageTime: '2.5 days',
-      satisfaction: 4.9,
-    },
-    {
-      name: 'Mike Wilson',
-      position: 'Technician',
-      assignedComplaints: 9,
-      completedComplaints: 7,
-      averageTime: '3.5 days',
-      satisfaction: 4.4,
-    },
-    {
-      name: 'David Brown',
-      position: 'Junior Technician',
-      assignedComplaints: 5,
-      completedComplaints: 4,
-      averageTime: '4.2 days',
-      satisfaction: 4.2,
-    },
-  ];
+  useEffect(() => {
+    fetchPerformanceData();
+  }, [user?.departmentId]);
+
+  const fetchPerformanceData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!user?.departmentId) {
+        setError('No department assigned');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch staff
+      const staffRes = await axios.get(
+        `http://localhost:5000/api/departments/${user.departmentId}/staff`,
+        { withCredentials: true }
+      );
+
+      // Fetch all complaints
+      const complaintsRes = await axios.get(
+        'http://localhost:5000/api/complaints',
+        { withCredentials: true }
+      );
+
+      const allComplaints = complaintsRes.data.data || [];
+      const staffList = staffRes.data.data || [];
+
+      // Calculate performance for each staff
+      const performance = staffList.map((staff: any) => {
+        const staffComplaints = allComplaints.filter((c: any) => c.assignedStaffId === staff._id);
+        return {
+          _id: staff._id,
+          profile: staff.profile,
+          assignedComplaints: staffComplaints.length,
+          completedComplaints: staffComplaints.filter((c: any) => c.status === 'completed').length,
+          pendingComplaints: staffComplaints.filter((c: any) => c.status === 'pending').length,
+        };
+      });
+
+      setStaffPerformance(performance.sort((a, b) => b.completedComplaints - a.completedComplaints));
+      setLoading(false);
+    } catch (err: any) {
+      console.error('Error fetching performance data:', err);
+      setError(err.response?.data?.message || 'Failed to load performance data');
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader className="animate-spin h-12 w-12 mx-auto text-primary-600 mb-4" />
+          <p className="text-secondary-600">Loading performance data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card variant="md" className="p-6 bg-red-50 border-red-200">
+          <p className="text-red-700 font-semibold text-center">{error}</p>
+        </Card>
+      </div>
+    );
+  }
+
+  const totalAssigned = staffPerformance.reduce((sum, s) => sum + s.assignedComplaints, 0);
+  const totalCompleted = staffPerformance.reduce((sum, s) => sum + s.completedComplaints, 0);
+  const totalPending = staffPerformance.reduce((sum, s) => sum + s.pendingComplaints, 0);
+  const completionRate = totalAssigned > 0 ? Math.round((totalCompleted / totalAssigned) * 100) : 0;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-secondary-900">Department Performance</h1>
-        <p className="text-secondary-600 mt-2">Key metrics and staff performance analysis</p>
+        <p className="text-secondary-600 mt-2">Staff performance overview</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {performanceMetrics.map((metric, index) => {
-          const Icon = metric.icon;
-          return (
-            <Card key={index} variant="md" className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <p className="text-sm text-secondary-500 mb-2">{metric.title}</p>
-                  <p className="text-3xl font-bold text-secondary-900">{metric.value}</p>
-                </div>
-                <div className={`p-3 rounded-lg ${metric.color}`}>
-                  <Icon className={`w-6 h-6 ${metric.textColor}`} />
-                </div>
-              </div>
-              <p className={`text-xs font-medium ${
-                metric.trend === 'up' ? 'text-blue-600' : 'text-blue-600'
-              }`}>
-                {metric.change}
-              </p>
-            </Card>
-          );
-        })}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card variant="md" className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <CheckCircle2 className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-secondary-600">Total Assigned</p>
+              <p className="text-3xl font-bold text-secondary-900">{totalAssigned}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card variant="md" className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-green-100 rounded-lg">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-secondary-600">Completed</p>
+              <p className="text-3xl font-bold text-secondary-900">{totalCompleted}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card variant="md" className="p-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-yellow-100 rounded-lg">
+              <AlertCircle className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div>
+              <p className="text-sm text-secondary-600">Pending</p>
+              <p className="text-3xl font-bold text-secondary-900">{totalPending}</p>
+            </div>
+          </div>
+        </Card>
       </div>
+
+      {/* Completion Rate */}
+      <Card variant="md" className="p-6">
+        <div className="text-center">
+          <p className="text-sm text-secondary-600 mb-2">Overall Completion Rate</p>
+          <p className="text-5xl font-bold text-primary-600 mb-4">{completionRate}%</p>
+          <div className="w-full bg-secondary-200 rounded-full h-3">
+            <div
+              className="bg-primary-600 h-3 rounded-full transition-all"
+              style={{ width: `${completionRate}%` }}
+            ></div>
+          </div>
+        </div>
+      </Card>
 
       {/* Staff Performance Table */}
       <Card variant="md" className="p-6">
-        <h2 className="text-xl font-bold text-secondary-900 mb-6">Staff Performance Rankings</h2>
-        
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-secondary-200 bg-secondary-50">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-secondary-900">
-                  Staff Member
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Assigned
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Completed
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Avg. Time
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Rating
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Efficiency
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {staffPerformance.map((staff, index) => {
-                const completionRate = ((staff.completedComplaints / staff.assignedComplaints) * 100).toFixed(0);
-                return (
-                  <tr key={index} className="border-b border-secondary-100 hover:bg-secondary-50">
-                    <td className="px-4 py-4">
-                      <div>
-                        <p className="font-medium text-secondary-900">{staff.name}</p>
-                        <p className="text-xs text-secondary-500">{staff.position}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <p className="font-semibold text-secondary-900">{staff.assignedComplaints}</p>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <p className="font-semibold text-blue-600">{staff.completedComplaints}</p>
-                    </td>
-                    <td className="px-4 py-4 text-center text-secondary-900">
-                      {staff.averageTime}
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <span className="font-semibold text-secondary-900">{staff.satisfaction}</span>
-                        <span className="text-yellow-400">★</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="w-12 h-6 bg-secondary-200 rounded-full mx-auto overflow-hidden">
-                        <div
-                          className="h-full bg-blue-500"
-                          style={{ width: `${completionRate}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-secondary-600 mt-1">{completionRate}%</p>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+        <h2 className="text-xl font-bold text-secondary-900 mb-6">Staff Performance</h2>
 
-      {/* Monthly Trends (Placeholder) */}
-      <Card variant="md" className="p-6">
-        <h2 className="text-xl font-bold text-secondary-900 mb-6">Monthly Trends</h2>
-        
-        <div className="space-y-6">
-          {/* Complaints Over Time */}
-          <div>
-            <h3 className="font-semibold text-secondary-900 mb-4">Complaints Filed vs Resolved</h3>
-            <div className="flex items-end gap-2 h-32 bg-secondary-50 p-4 rounded-lg">
-              {[65, 72, 85, 78, 92, 88, 95].map((value, i) => (
-                <div
-                  key={i}
-                  className="flex-1 bg-primary-600 rounded-t"
-                  style={{ height: `${(value / 100) * 120}px` }}
-                  title={`${value} complaints`}
-                ></div>
-              ))}
-            </div>
-            <p className="text-xs text-secondary-500 mt-2 text-center">
-              Jan • Feb • Mar • Apr • May • Jun • Jul
-            </p>
+        {staffPerformance.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-secondary-200 bg-secondary-50">
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-secondary-900">
+                    Staff Member
+                  </th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
+                    Assigned
+                  </th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
+                    Completed
+                  </th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
+                    Pending
+                  </th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
+                    Efficiency
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {staffPerformance.map((staff, index) => {
+                  const efficiency =
+                    staff.assignedComplaints > 0
+                      ? Math.round((staff.completedComplaints / staff.assignedComplaints) * 100)
+                      : 0;
+                  return (
+                    <tr key={staff._id} className="border-b border-secondary-100 hover:bg-secondary-50">
+                      <td className="px-4 py-4">
+                        <p className="font-medium text-secondary-900">{staff.profile.fullName}</p>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <p className="font-semibold text-secondary-900">{staff.assignedComplaints}</p>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <p className="font-semibold text-green-600">{staff.completedComplaints}</p>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <p className="font-semibold text-yellow-600">{staff.pendingComplaints}</p>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="inline-block bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-semibold">
+                          {efficiency}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-
-          {/* Resolution Time Trend */}
-          <div>
-            <h3 className="font-semibold text-secondary-900 mb-4">Average Resolution Time (Days)</h3>
-            <div className="flex items-end gap-2 h-32 bg-secondary-50 p-4 rounded-lg">
-              {[4.2, 3.9, 3.8, 3.5, 3.4, 3.3, 3.2].map((value, i) => (
-                <div
-                  key={i}
-                  className="flex-1 bg-blue-600 rounded-t"
-                  style={{ height: `${(value / 5) * 120}px` }}
-                  title={`${value} days`}
-                ></div>
-              ))}
-            </div>
-            <p className="text-xs text-secondary-500 mt-2 text-center">
-              Jan • Feb • Mar • Apr • May • Jun • Jul
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* Insights Card */}
-      <Card variant="md" className="p-6 bg-gradient-to-r from-blue-50 to-primary-50 border-primary-200">
-        <h2 className="text-lg font-bold text-secondary-900 mb-4">Key Insights</h2>
-        <ul className="space-y-3 text-sm text-secondary-700">
-          <li className="flex gap-3">
-            <span className="text-green-600 font-bold">✓</span>
-            <span>Average resolution time decreased by 12% compared to last month</span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-green-600 font-bold">✓</span>
-            <span>John Smith leads team performance with 94% completion rate</span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-yellow-600 font-bold">⚠</span>
-            <span>David Brown's team needs improvement - consider mentoring program</span>
-          </li>
-          <li className="flex gap-3">
-            <span className="text-blue-600 font-bold">ℹ</span>
-            <span>Customer satisfaction trending upward - maintain current practices</span>
-          </li>
-        </ul>
+        ) : (
+          <p className="text-center text-secondary-600">No staff performance data available</p>
+        )}
       </Card>
     </div>
   );

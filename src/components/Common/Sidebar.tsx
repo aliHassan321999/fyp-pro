@@ -125,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
           },
         ];
 
-      case 'department':
+      case 'department_head':
         return [
           {
             title: 'Management',
@@ -321,10 +321,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
         {/* Sidebar Footer */}
         <div className="border-t border-gray-200 p-4 space-y-2">
           {/* Settings */}
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50 transition-colors duration-200">
+          <Link to={ROUTES.SETTINGS} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-blue-50 transition-colors duration-200">
             <Settings className="w-5 h-5 text-gray-400" />
             <span>Settings</span>
-          </button>
+          </Link>
 
           {/* Logout */}
           <button

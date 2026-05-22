@@ -81,6 +81,7 @@ export const ROUTES = {
   // Common Routes (Available to all roles)
   PROFILE: '/profile',
   HELP_SUPPORT: '/help-support',
+  SETTINGS: '/settings',
 } as const;
 
 // API Endpoints

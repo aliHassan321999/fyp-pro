@@ -1,71 +1,95 @@
-import React from 'react';
-import { BarChart3, TrendingUp, Users, Building2 } from 'lucide-react';
-import { Button, Card, StatusBadge } from '@components/Common';
+import React, { useState, useEffect } from 'react';
+import { BarChart3, FileText, CheckSquare, Settings, Users, Building2, AlertCircle, TrendingUp } from 'lucide-react';
+import { Button, Card } from '@components/Common';
 import { ROUTES } from '@constants/index';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+interface DashboardStats {
+  totalUsers: number;
+  totalComplaints: number;
+  activeDepartments: number;
+  pendingApprovals: number;
+  resolvedComplaints: number;
+  pendingComplaints: number;
+}
 
 const SuperAdminDashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    totalComplaints: 0,
+    activeDepartments: 0,
+    pendingApprovals: 0,
+    resolvedComplaints: 0,
+    pendingComplaints: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch users count
+        const usersRes = await axios.get('/api/users');
+        const users = usersRes.data.data || [];
+
+        // Fetch departments
+        const deptsRes = await axios.get('/api/departments');
+        const departments = deptsRes.data.data || [];
+
+        // Fetch complaints
+        const complaintsRes = await axios.get('/api/complaints');
+        const complaints = complaintsRes.data.data || [];
+
+        const resolved = complaints.filter((c: any) => c.status === 'resolved').length;
+        const pending = complaints.filter((c: any) => c.status === 'pending').length;
+
+        setStats({
+          totalUsers: users.length,
+          totalComplaints: complaints.length,
+          activeDepartments: departments.length,
+          pendingApprovals: 0, // Will be updated when department approval system is implemented
+          resolvedComplaints: resolved,
+          pendingComplaints: pending,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const statCards = [
     {
-      label: 'Total Residents',
-      value: '12,847',
+      label: 'Total Users',
+      value: stats.totalUsers,
       icon: Users,
       color: 'bg-blue-100',
-      textColor: 'text-blue-700',
-      trend: '+8.5% this month',
-    },
-    {
-      label: 'Active Departments',
-      value: '8',
-      icon: Building2,
-      color: 'bg-green-100',
-      textColor: 'text-green-700',
-      trend: 'All operational',
+      textColor: 'text-blue-600',
     },
     {
       label: 'Total Complaints',
-      value: '18,423',
-      icon: BarChart3,
-      color: 'bg-purple-100',
-      textColor: 'text-purple-700',
-      trend: '+2,156 this month',
+      value: stats.totalComplaints,
+      icon: AlertCircle,
+      color: 'bg-orange-100',
+      textColor: 'text-orange-600',
     },
     {
-      label: 'System Health',
-      value: '98.5%',
-      icon: TrendingUp,
+      label: 'Active Departments',
+      value: stats.activeDepartments,
+      icon: Building2,
       color: 'bg-green-100',
-      textColor: 'text-green-700',
-      trend: 'Excellent',
-    },
-  ];
-
-  const complexStats = [
-    {
-      name: 'East Complex',
-      residents: 4200,
-      complaints: 2156,
-      resolvedRate: 94,
+      textColor: 'text-green-600',
     },
     {
-      name: 'West Complex',
-      residents: 3800,
-      complaints: 1890,
-      resolvedRate: 91,
-    },
-    {
-      name: 'Central Complex',
-      residents: 2500,
-      complaints: 1250,
-      resolvedRate: 96,
-    },
-    {
-      name: 'North Complex',
-      residents: 2347,
-      complaints: 1127,
-      resolvedRate: 89,
+      label: 'Resolved',
+      value: stats.resolvedComplaints,
+      icon: CheckSquare,
+      color: 'bg-emerald-100',
+      textColor: 'text-emerald-600',
     },
   ];
 
@@ -74,131 +98,121 @@ const SuperAdminDashboardPage: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-secondary-900">SuperAdmin Dashboard</h1>
-        <p className="text-secondary-600 mt-2">System-wide analytics and management</p>
+        <p className="text-secondary-600 mt-2">System-wide management and control</p>
       </div>
 
-      {/* Stats Grid */}
+      {/* Key Statistics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, index) => {
+        {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <Card key={index} variant="md" className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-sm text-secondary-500 mb-2">{stat.label}</p>
-                  <p className="text-3xl font-bold text-secondary-900">{stat.value}</p>
+                  <p className="text-sm text-secondary-600">{stat.label}</p>
+                  <p className="text-3xl font-bold text-secondary-900 mt-2">{stat.value}</p>
                 </div>
                 <div className={`p-3 rounded-lg ${stat.color}`}>
                   <Icon className={`w-6 h-6 ${stat.textColor}`} />
                 </div>
               </div>
-              <p className="text-xs text-secondary-600">{stat.trend}</p>
             </Card>
           );
         })}
       </div>
 
-      {/* Complex Comparison */}
-      <Card variant="md" className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-secondary-900">Complex Performance</h2>
-          <Button
-            variant="primary"
-            onClick={() => navigate(ROUTES.SUPERADMIN_ANALYTICS)}
-          >
-            View Analytics
-          </Button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-secondary-200 bg-secondary-50">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-secondary-900">
-                  Complex
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Residents
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Complaints
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-semibold text-secondary-900">
-                  Resolution Rate
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {complexStats.map((complex, index) => (
-                <tr key={index} className="border-b border-secondary-100 hover:bg-secondary-50">
-                  <td className="px-4 py-4">
-                    <p className="font-medium text-secondary-900">{complex.name}</p>
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <p className="font-semibold text-secondary-900">{complex.residents.toLocaleString()}</p>
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <p className="font-semibold text-secondary-900">{complex.complaints.toLocaleString()}</p>
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-12 h-2 bg-secondary-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-500"
-                          style={{ width: `${complex.resolvedRate}%` }}
-                        ></div>
-                      </div>
-                      <span className="text-sm font-semibold text-secondary-900 w-8">
-                        {complex.resolvedRate}%
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Recent Activity */}
-      <Card variant="md" className="p-6">
-        <h2 className="text-xl font-bold text-secondary-900 mb-4">Quick Access</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={() => navigate(ROUTES.SUPERADMIN_ANALYTICS)}
-          >
-            View Analytics
-          </Button>
-          <Button
-            variant="outline"
-            fullWidth
-            onClick={() => navigate(ROUTES.SUPERADMIN_REPORTS)}
-          >
-            Generate Reports
-          </Button>
-          <Button variant="outline" fullWidth>
-            System Settings
-          </Button>
-        </div>
-      </Card>
-
-      {/* Alert & Important Info */}
-      <Card variant="md" className="p-6 bg-gradient-to-r from-blue-50 to-primary-50 border-primary-200">
-        <h2 className="text-lg font-bold text-secondary-900 mb-4">System Status</h2>
-        <div className="space-y-3 text-sm text-secondary-700">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>All systems operational</span>
+      {/* Main Functions Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Approve Departments */}
+        <Card variant="md" className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-blue-500">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-secondary-900 mb-2">✅ Approve Departments</h3>
+              <p className="text-sm text-secondary-600 mb-4">Review and approve new department requests from admins</p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(ROUTES.SUPERADMIN_REQUESTS)}
+              >
+                Manage Requests
+              </Button>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <Building2 className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-green-500"></div>
-            <span>No pending critical issues</span>
+        </Card>
+
+        {/* Monitor Departments */}
+        <Card variant="md" className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-green-500">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-secondary-900 mb-2">📊 Monitor Departments</h3>
+              <p className="text-sm text-secondary-600 mb-4">View department performance, complaints, and statistics</p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(ROUTES.SUPERADMIN_ANALYTICS)}
+              >
+                View Analytics
+              </Button>
+            </div>
+            <div className="p-3 bg-green-100 rounded-lg">
+              <TrendingUp className="w-6 h-6 text-green-600" />
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-            <span>2 new resident approval requests pending</span>
+        </Card>
+
+        {/* Admin Performance */}
+        <Card variant="md" className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-purple-500">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-secondary-900 mb-2">👤 Admin Performance</h3>
+              <p className="text-sm text-secondary-600 mb-4">Monitor admin efficiency, approvals, and complaint handling</p>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled
+              >
+                Coming Soon
+              </Button>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <Users className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </Card>
+
+        {/* Generate Reports */}
+        <Card variant="md" className="p-6 hover:shadow-lg transition-shadow cursor-pointer border-l-4 border-orange-500">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-secondary-900 mb-2">📄 Generate Reports</h3>
+              <p className="text-sm text-secondary-600 mb-4">Create complaint, department, and performance reports</p>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(ROUTES.SUPERADMIN_REPORTS)}
+              >
+                Generate Report
+              </Button>
+            </div>
+            <div className="p-3 bg-orange-100 rounded-lg">
+              <FileText className="w-6 h-6 text-orange-600" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* System Health */}
+      <Card variant="md" className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-secondary-900 mb-2">✓ System Status</h2>
+            <p className="text-secondary-700">All systems operational. {stats.totalComplaints} total complaints being managed across {stats.activeDepartments} departments.</p>
+          </div>
+          <div className="p-4 bg-green-100 rounded-lg">
+            <CheckSquare className="w-8 h-8 text-green-600" />
           </div>
         </div>
       </Card>

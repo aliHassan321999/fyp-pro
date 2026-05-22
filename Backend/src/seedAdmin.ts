@@ -8,6 +8,13 @@ dotenv.config();
 
 const users = [
   {
+    email: 'superadmin@company.com',
+    password: 'superadmin123',
+    role: 'superadmin',
+    name: 'Super Admin',
+    cnic: '99999-9999999-9'
+  },
+  {
     email: 'admin@test.com',
     password: 'password123',
     role: 'admin',
@@ -88,9 +95,12 @@ const seedSystem = async () => {
 
     // 3. Create users
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('password123', salt);
 
     for (const u of users) {
+      // Use different password based on user type
+      const password = u.role === 'superadmin' ? 'superadmin123' : 'password123';
+      const hashedPassword = await bcrypt.hash(password, salt);
+
       const newUser = await User.create({
         email: u.email,
         password: hashedPassword,

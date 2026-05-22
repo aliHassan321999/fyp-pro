@@ -39,6 +39,7 @@ import SuperAdminRequestsPage from '@pages/SuperAdmin/RequestsPage';
 // Common pages (available for all roles)
 import CommonProfilePage from '@pages/Common/ProfilePage';
 import HelpSupportPage from '@pages/Common/HelpSupportPage';
+import SettingsPage from '@pages/Common/SettingsPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -162,7 +163,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path={ROUTES.DEPARTMENT_DASHBOARD}
         element={
-          <ProtectedRoute requiredRole="department">
+          <ProtectedRoute requiredRole="department_head">
             <DepartmentDashboard />
           </ProtectedRoute>
         }
@@ -170,7 +171,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path={ROUTES.DEPARTMENT_STAFF}
         element={
-          <ProtectedRoute requiredRole="department">
+          <ProtectedRoute requiredRole="department_head">
             <DepartmentStaffPage />
           </ProtectedRoute>
         }
@@ -178,7 +179,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path={ROUTES.DEPARTMENT_COMPLAINTS}
         element={
-          <ProtectedRoute requiredRole="department">
+          <ProtectedRoute requiredRole="department_head">
             <DepartmentComplaintsPage />
           </ProtectedRoute>
         }
@@ -186,7 +187,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path={ROUTES.DEPARTMENT_PERFORMANCE}
         element={
-          <ProtectedRoute requiredRole="department">
+          <ProtectedRoute requiredRole="department_head">
             <DepartmentPerformancePage />
           </ProtectedRoute>
         }
@@ -282,6 +283,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <HelpSupportPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.SETTINGS}
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         }
       />

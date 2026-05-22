@@ -16,7 +16,7 @@ export interface IUserProfile {
   address?: IAddress;
 }
 
-export type UserRole = 'admin' | 'department_head' | 'staff' | 'resident';
+export type UserRole = 'admin' | 'superadmin' | 'department_head' | 'staff' | 'resident';
 
 export interface IStatusHistory {
   status: 'active' | 'pending' | 'suspended';
