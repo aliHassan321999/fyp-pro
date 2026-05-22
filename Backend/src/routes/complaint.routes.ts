@@ -60,3 +60,4 @@ router.post(
 export default router;
 # commit-marker: [2026-03-15 11:30:00] Create complaint routes with auth middleware guard
 # commit-marker: [2026-03-25 09:30:00] Add complaint assignment to staff member
+# commit-marker: [2026-05-22 10:30:00] Add complaint reopen request for residents
