@@ -7,7 +7,8 @@ import {
   updateComplaintStatus,
   assignComplaint,
   getComplaintById,
-  getComplaintActivity
+  getComplaintActivity,
+  submitComplaintFeedback
 } from '../controllers/complaint.controller';
 
 const router = express.Router();
@@ -44,6 +45,13 @@ router.patch(
   '/:id/assign',
   requireRole(['department_head']),
   assignComplaint
+);
+
+// Feedback Loop exclusively for Residents on Resolved Tickets
+router.post(
+  '/:id/feedback',
+  requireRole(['resident']),
+  submitComplaintFeedback
 );
 
 export default router;

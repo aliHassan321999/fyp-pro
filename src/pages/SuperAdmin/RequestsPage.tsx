@@ -232,3 +232,17 @@ const SuperAdminRequestsPage: React.FC = () => {
 };
 
 export default SuperAdminRequestsPage;
+                      color="bg-red-100"
+                    />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SuperAdminRequestsPage;

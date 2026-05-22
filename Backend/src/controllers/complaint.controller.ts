@@ -1,26 +1,30 @@
 import { Response } from 'express';
-import { FilterQuery } from 'mongoose';
+import mongoose from 'mongoose';
+import { Filter } from 'mongodb';
 import { Complaint } from '../models/complaint.model';
 import { Department } from '../models/department.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { User } from '../models/user.model';
+import { Notification } from '../models/notification.model';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { IComplaint, ComplaintStatus, ComplaintPriority } from '../interfaces/complaint.interface';
 import { uploadBufferToCloudinary } from '../utils/cloudinary';
 import { classifyComplaint } from '../services/ai.service';
+import { sendResponse } from '../utils/response';
+import { isValidTransition, canPerformTransition } from '../services/statusTransition.service';
+import { processAssignment } from '../services/assignment.service';
 
 /**
  * Resident creates a new complaint routing it to a department, automatically computing SLA.
  */
-export const createComplaint = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const createComplaint = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const user = request.user!;
     const { title, description, departmentId: payloadDeptId, priority: payloadPriority, lat, lng } = request.body;
 
     const allDepartments = await Department.find();
     if (allDepartments.length === 0) {
-       response.status(500).json({ success: false, message: 'Critical Fault: No Departments available for routing.' });
-       return;
+      return sendResponse(response, 500, false, 'Critical Fault: No Departments available for routing.');
     }
 
     const validDepartmentsPayload = allDepartments.map(d => ({
@@ -56,16 +60,19 @@ export const createComplaint = async (request: AuthenticatedRequest, response: R
           finalPriority = aiResult.priority;
        }
     } else {
-       // AI Service completely failed or timed out
-       finalDepartmentId = fallbackDeptId;
-       finalPriority = 'medium';
+      // AI Service completely failed or timed out
+      finalDepartmentId = fallbackDeptId;
+      finalPriority = 'medium';
     }
+
+    // Capture recommended staff IDs if AI provided any, or leave empty for now
+    // (Future: could call recommendStaff logic here)
+    const recommendedStaffIds: string[] = [];
 
     // Strict validation of the determined department
     const department = await Department.findById(finalDepartmentId);
     if (!department) {
-       response.status(500).json({ success: false, message: 'Department resolution pipeline failed completely.' });
-       return;
+      return sendResponse(response, 500, false, 'Department resolution pipeline failed completely.');
     }
 
     const attachedImages: string[] = [];
@@ -96,42 +103,43 @@ export const createComplaint = async (request: AuthenticatedRequest, response: R
       attachedImages,
       location,
       residentId: user._id,
-      status: 'pending',
+      status: 'pending_assignment', // Updated status per requirements
       slaDeadline,
-      assignedStaffId: null
+      assignedStaffId: department.headOfDepartment, // Assigned to Dept Head by default
+      recommendedStaffIds // Persist recommendations
     });
 
     await ActivityLog.create({
       complaintId: complaint._id,
       action: 'created',
       performedBy: user._id,
-      newValue: 'open'
+      newValue: 'pending_assignment'
     });
 
-    response.status(201).json({ success: true, data: complaint });
+    return sendResponse(response, 201, true, 'Complaint created successfully and routed to department head.', complaint);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
 /**
  * Intelligent fetch endpoint heavily relying on Strict Role Filtering constraints.
  */
-export const getComplaints = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getComplaints = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const user = request.user!;
     
     // Explicitly typed mongoose filter array
-    const filter: FilterQuery<IComplaint> = {};
+    const filter: Filter<IComplaint> = {};
 
     // Strict Filtering Requirements Enforced Natively without 'any' bypasses
     if (user.role === 'resident') {
-      filter.residentId = user._id;
+      filter.residentId = user._id as any;
     } else if (user.role === 'department_head') {
-      filter.departmentId = user.departmentId;
+      filter.departmentId = user.departmentId as any;
     } else if (user.role === 'staff') {
-      filter.assignedStaffId = user._id;
+      filter.assignedStaffId = user._id as any;
     }
 
     // Explicit type assertions for URL Queries
@@ -142,22 +150,22 @@ export const getComplaints = async (request: AuthenticatedRequest, response: Res
       filter.priority = request.query.priority as ComplaintPriority;
     }
 
-    const complaints = await Complaint.find(filter)
+    const complaints = await Complaint.find(filter as any)
       .populate('residentId', 'email profile.fullName')
       .populate('assignedStaffId', 'email profile.fullName')
       .sort({ createdAt: -1 });
 
-    response.status(200).json({ success: true, count: complaints.length, data: complaints });
+    return sendResponse(response, 200, true, 'Complaints retrieved', complaints);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
 /**
  * Update the Complaint Status explicitly tracking resolvedAt states.
  */
-export const updateComplaintStatus = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const updateComplaintStatus = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const user = request.user!;
     const { id } = request.params;
@@ -165,15 +173,26 @@ export const updateComplaintStatus = async (request: AuthenticatedRequest, respo
 
     const complaint = await Complaint.findById(id);
     if (!complaint) {
-       response.status(404).json({ success: false, message: 'Complaint not found' });
-       return;
+      return sendResponse(response, 404, false, 'Complaint not found');
     }
 
     const oldStatus = complaint.status;
+
+    if (!isValidTransition(oldStatus, status)) {
+      return sendResponse(response, 400, false, 'Invalid status transition');
+    }
+
+    const isAssignedStaff = complaint.assignedStaffId?.toString() === user._id.toString();
+    const isComplaintOwner = complaint.residentId.toString() === user._id.toString();
+
+    if (!canPerformTransition(user.role, oldStatus, status, isAssignedStaff, isComplaintOwner)) {
+      return sendResponse(response, 403, false, 'Unauthorized action for this role');
+    }
+
     complaint.status = status;
     
     // Enforcing rigid closure footprint properties automatically
-    if (status === 'resolved' || status === 'closed') {
+    if (status === 'resolved') {
       complaint.resolutionRemarks = resolutionRemarks;
       complaint.resolvedAt = new Date(); // Hard override of resolution timestamp
     }
@@ -185,75 +204,68 @@ export const updateComplaintStatus = async (request: AuthenticatedRequest, respo
       action: 'status_updated',
       performedBy: user._id,
       oldValue: oldStatus,
-      newValue: status
+      newValue: status,
+      metadata: {
+        from: oldStatus,
+        to: status
+      }
     });
 
-    response.status(200).json({ success: true, data: complaint });
+    await Notification.create({
+      userId: complaint.residentId,
+      type: 'status_update',
+      message: `Your complaint #${complaint._id.toString().slice(-6).toUpperCase()} status changed to ${status.replace('_', ' ')}`
+    });
+
+    return sendResponse(response, 200, true, 'Complaint status updated', complaint);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
 /**
  * Assign a specific staff member to a complaint securely.
  */
-export const assignComplaint = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const assignComplaint = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const user = request.user!;
     const { id } = request.params;
     const { assignedStaffId } = request.body;
 
     if (!assignedStaffId) {
-      response.status(400).json({ success: false, message: 'Assigned Staff ID payload missing' });
-      return;
+      return sendResponse(response, 400, false, 'Assigned Staff ID payload missing');
     }
 
-    const complaint = await Complaint.findById(id);
-    if (!complaint) {
-       response.status(404).json({ success: false, message: 'Complaint map not found' });
-       return;
-    }
+    const complaint = await processAssignment(id as string, assignedStaffId, user._id);
 
-    const staff = await User.findById(assignedStaffId);
-    if (!staff || staff.role !== 'staff') {
-       response.status(400).json({ success: false, message: 'Target profile must natively hold active Staff privileges.' });
-       return;
-    }
-
-    if (staff.departmentId?.toString() !== complaint.departmentId?.toString()) {
-       response.status(400).json({ success: false, message: 'Cross-department pipeline restricted natively.' });
-       return;
-    }
-
-    const oldStatus = complaint.status;
+    return sendResponse(response, 200, true, 'Complaint assigned successfully', complaint);
+  } catch (error: any) {
+    const errMessage = error.message || '';
     
-    // Explicit requirements per instruction
-    complaint.assignedStaffId = assignedStaffId;
-    complaint.status = 'assigned'; 
-    complaint.assignedAt = new Date();
-
-    await complaint.save();
-
-    await ActivityLog.create({
-      complaintId: complaint._id,
-      action: 'assigned',
-      performedBy: user._id,
-      oldValue: oldStatus,
-      newValue: 'assigned'
-    });
-
-    response.status(200).json({ success: true, data: complaint });
-  } catch (error) {
-    const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server Exception during Assignment' });
+    // Distinguish validation vs critical errors
+    const clientErrors = [
+      'Complaint not found', 
+      'Invalid assignment state', 
+      'Complaint is already assigned', 
+      'Invalid staff member', 
+      'Staff does not belong to this department',
+      'Reassignment limit reached',
+      'Reassignment cooldown active'
+    ];
+    
+    if (clientErrors.includes(errMessage)) {
+      return sendResponse(response, 400, false, errMessage);
+    }
+    
+    return sendResponse(response, 500, false, errMessage || 'Server Exception during Assignment');
   }
 };
 
 /**
  * Fetch dedicated ticket aggregates and meta-schema payloads implicitly
  */
-export const getComplaintById = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getComplaintById = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
     const complaint = await Complaint.findById(id)
@@ -262,32 +274,116 @@ export const getComplaintById = async (request: AuthenticatedRequest, response: 
       .populate('departmentId', 'name');
 
     if (!complaint) {
-       response.status(404).json({ success: false, message: 'Complaint sequence block not found' });
-       return;
+      return sendResponse(response, 404, false, 'Complaint sequence block not found');
     }
     
     // Implicit user ownership validation theoretically should exist for Residents, but 
     // relying on dynamic UI routing for now.
-    response.status(200).json({ success: true, data: complaint });
+    return sendResponse(response, 200, true, 'Complaint details retrieved', complaint);
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server Exception extracting details' });
+    return sendResponse(response, 500, false, err.message || 'Server Exception extracting details');
   }
 };
 
 /**
  * Extract chronological timeline payloads mapped sequentially 
  */
-export const getComplaintActivity = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getComplaintActivity = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { id } = request.params;
     const activities = await ActivityLog.find({ complaintId: id })
        .populate('performedBy', 'email profile.fullName')
-       .sort({ createdAt: -1 }); // Descending chronologically Native standard
+       .sort({ createdAt: 1 }); // Ascending chronologically
 
-    response.status(200).json({ success: true, count: activities.length, data: activities });
+    const formattedActivities = activities.map(activity => {
+      const performedBy: any = activity.performedBy;
+      return {
+        action: activity.action,
+        performedBy: performedBy ? {
+          name: performedBy.profile?.fullName || 'System',
+          email: performedBy.email
+        } : { name: 'System', email: null },
+        metadata: activity.metadata || {},
+        createdAt: activity.createdAt
+      };
+    });
+
+    return sendResponse(response, 200, true, 'Complaint activity timeline retrieved', formattedActivities);
   } catch (error) {
-     const err = error as Error;
-     response.status(500).json({ success: false, message: err.message || 'Server Exception extracting timeline' });
+    const err = error as Error;
+    return sendResponse(response, 500, false, err.message || 'Server Exception extracting timeline');
+  }
+};
+
+/**
+ * Submit feedback for a resolved or closed complaint.
+ * Constraints:
+ * - Only allowed when status is 'resolved' or 'closed'
+ * - Only one feedback submission per complaint
+ * - Rating (1-5) is strictly required
+ */
+export const submitComplaintFeedback = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
+  try {
+    const user = request.user!;
+    const { id } = request.params;
+    const { rating, feedbackComment } = request.body;
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return sendResponse(response, 404, false, 'Complaint not found');
+    }
+
+    // Security: Only the resident who created the complaint can submit feedback
+    if (complaint.residentId.toString() !== user._id.toString()) {
+      return sendResponse(response, 403, false, 'You are not authorized to submit feedback for this complaint.');
+    }
+
+    // Constraint: Only resolved status allowed for feedback
+    if (complaint.status !== 'resolved') {
+      return sendResponse(response, 400, false, 'Feedback can only be submitted for resolved complaints.');
+    }
+
+    // Constraint: One-time submission
+    if (complaint.feedbackSubmittedAt) {
+      return sendResponse(response, 400, false, 'Feedback has already been submitted for this complaint.');
+    }
+
+    // Constraint: Rating required and in range
+    const ratingNum = Number(rating);
+    if (!rating || isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return sendResponse(response, 400, false, 'A valid rating between 1 and 5 is strictly required.');
+    }
+
+    // Optimistic Concurrency Control
+    const updatedComplaint = await Complaint.findOneAndUpdate(
+      { _id: complaint._id, updatedAt: complaint.updatedAt },
+      { 
+        $set: { 
+          rating: ratingNum, 
+          feedbackComment: feedbackComment, 
+          feedbackSubmittedAt: new Date() 
+        } 
+      },
+      { new: true }
+    );
+
+    if (!updatedComplaint) {
+      return sendResponse(response, 409, false, 'Conflict: The document was modified by another process. Please refresh and try again.');
+    }
+
+    await ActivityLog.create({
+      complaintId: updatedComplaint._id,
+      action: 'feedback_submitted',
+      performedBy: user._id,
+      metadata: { 
+        message: `Rated ${ratingNum} stars` 
+      }
+    });
+
+    return sendResponse(response, 200, true, 'Feedback submitted successfully. Thank you for your input!', updatedComplaint);
+  } catch (error) {
+    console.error('[submitComplaintFeedback] Error:', error);
+    return sendResponse(response, 500, false, 'Server error while submitting feedback');
   }
 };

@@ -9,7 +9,10 @@ import complaintRoutes from './routes/complaint.routes';
 import userRoutes from './routes/user.routes';
 import adminRoutes from './routes/admin.routes';
 import departmentRoutes from './routes/department.routes';
+import staffRoutes from './routes/staff.routes';
+import notificationRoutes from './routes/notification.routes';
 import { connectDB } from './config/database';
+import { startSlaMonitorJob } from './jobs/slaMonitor.job';
 
 dotenv.config();
 
@@ -53,6 +56,8 @@ app.use('/api/complaints', complaintRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/staff', staffRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Global Error Handler Array fallback
 app.use((err: Error, request: Request, response: Response, next: NextFunction) => {
@@ -67,6 +72,9 @@ app.use((err: Error, request: Request, response: Response, next: NextFunction) =
 const startServer = async () => {
   try {
     await connectDB();
+    
+    // Start background jobs
+    startSlaMonitorJob();
 
     app.listen(PORT, () => {
       console.log(`[Server] Live and listening securely on port ${PORT}`);

@@ -5,11 +5,13 @@ import { User } from '../models/user.model';
 import { ActivityLog } from '../models/activityLog.model';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { sendEmail } from '../utils/email';
+import { uploadBufferToCloudinary } from '../utils/cloudinary';
+import { sendResponse } from '../utils/response';
 
 /**
  * Handle resident and staff registration securely.
  */
-export const register = async (request: Request, response: Response): Promise<void> => {
+export const register = async (request: Request, response: Response): Promise<any> => {
   try {
     const { email, password, role, profile, departmentId } = request.body;
 
@@ -17,8 +19,7 @@ export const register = async (request: Request, response: Response): Promise<vo
     if (existingUser) {
       if (existingUser.accountStatus === 'suspended') {
         if (existingUser.applicationVersion >= 3) {
-          response.status(403).json({ success: false, message: 'Maximum re-application attempts exceeded globally.' });
-          return;
+          return sendResponse(response, 403, false, 'Maximum re-application attempts exceeded globally.');
         }
 
         const oldProfile = existingUser.profile;
@@ -77,14 +78,9 @@ The Complaint Management Team`
           console.error("Email failed:", emailError);
         }
 
-        response.status(200).json({
-          success: true,
-          message: 'Account application re-submitted successfully. Waiting for admin approval.'
-        });
-        return;
+        return sendResponse(response, 200, true, 'Account application re-submitted successfully. Waiting for admin approval.');
       } else {
-        response.status(400).json({ success: false, message: 'Email already exists and is actively registered' });
-        return;
+        return sendResponse(response, 400, false, 'Email already exists and is actively registered');
       }
     }
 
@@ -126,13 +122,10 @@ The Complaint Management Team`
       console.error("Email failed:", emailError);
     }
 
-    response.status(201).json({
-      success: true,
-      message: 'Registration successful. Waiting for admin approval.'
-    });
+    return sendResponse(response, 201, true, 'Registration successful. Waiting for admin approval.');
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
@@ -161,25 +154,22 @@ The Complaint Management Team`
 /**
  * Handle user authentication and strictly issues Dual Security Cookies.
  */
-export const login = async (request: Request, response: Response): Promise<void> => {
+export const login = async (request: Request, response: Response): Promise<any> => {
   try {
     const { emailOrUsername, password } = request.body;
 
     const user = await User.findOne({ email: emailOrUsername }).select('+password');
     if (!user) {
-      response.status(401).json({ success: false, message: 'Invalid credentials' });
-      return;
+      return sendResponse(response, 401, false, 'Invalid credentials');
     }
 
     if (user.accountStatus !== 'active') {
-      response.status(403).json({ success: false, message: 'Account is pending or suspended' });
-      return;
+      return sendResponse(response, 403, false, 'Account is pending or suspended');
     }
 
     const isMatch = await bcrypt.compare(password, user.password!);
     if (!isMatch) {
-      response.status(401).json({ success: false, message: 'Invalid credentials' });
-      return;
+      return sendResponse(response, 401, false, 'Invalid credentials');
     }
 
     const accessToken = jwt.sign(
@@ -212,38 +202,35 @@ export const login = async (request: Request, response: Response): Promise<void>
     delete userObj.refreshToken;
 
     console.log('[AUTH CONTROLLER] Login Success. Issuing cookies and 200 OK for:', userObj.email);
-    response.status(200).json({ success: true, data: userObj });
+    return sendResponse(response, 200, true, 'Login successful', userObj);
   } catch (error) {
     console.error('[AUTH CONTROLLER FATAL] Server error during login:', error);
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
 /**
  * Validates Refresh Tokens securely.
  */
-export const refresh = async (request: Request, response: Response): Promise<void> => {
+export const refresh = async (request: Request, response: Response): Promise<any> => {
   try {
     const { refreshToken } = request.cookies;
     if (!refreshToken) {
-      response.status(401).json({ success: false, message: 'Unauthorized - Missing Refresh Token' });
-      return;
+      return sendResponse(response, 401, false, 'Unauthorized - Missing Refresh Token');
     }
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string) as { id: string };
     const user = await User.findById(decoded.id);
 
     if (!user || user.accountStatus !== 'active' || !user.refreshToken) {
-      response.status(401).json({ success: false, message: 'Unauthorized - Invalid session alignment' });
-      return;
+      return sendResponse(response, 401, false, 'Unauthorized - Invalid session alignment');
     }
 
     // Explicitly compare the plaintext refresh cookie against hashed refresh table payload
     const isMatch = await bcrypt.compare(refreshToken, user.refreshToken);
     if (!isMatch) {
-      response.status(401).json({ success: false, message: 'Unauthorized - Suspicious Token Signature' });
-      return;
+      return sendResponse(response, 401, false, 'Unauthorized - Suspicious Token Signature');
     }
 
     const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, { expiresIn: '15m' });
@@ -255,37 +242,88 @@ export const refresh = async (request: Request, response: Response): Promise<voi
       maxAge: 15 * 60 * 1000
     });
 
-    response.status(200).json({ success: true, message: 'Access renewed seamlessly' });
+    return sendResponse(response, 200, true, 'Access renewed seamlessly');
   } catch (error) {
-    response.status(401).json({ success: false, message: 'Unauthorized - Token parsing failed' });
+    return sendResponse(response, 401, false, 'Unauthorized - Token parsing failed');
   }
 };
 
 /**
  * Purge secure cookies unconditionally.
  */
-export const logout = async (request: Request, response: Response): Promise<void> => {
+export const logout = async (request: Request, response: Response): Promise<any> => {
   try {
     // Optionally delete from DB if tracking is strict
     response.clearCookie('accessToken');
     response.clearCookie('refreshToken');
-    response.status(200).json({ success: true, message: 'Successfully logged out' });
+    return sendResponse(response, 200, true, 'Successfully logged out');
   } catch (error) {
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
 
 /**
  * Read logic.
  */
-export const getMe = async (request: AuthenticatedRequest, response: Response): Promise<void> => {
+export const getMe = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   console.log('[AUTH CONTROLLER] getMe requested. User object attached by middleware:', request.user?.email);
   try {
-    response.status(200).json({ success: true, data: request.user });
+    return sendResponse(response, 200, true, 'Profile retrieved', request.user);
   } catch (error) {
     console.error('[AUTH CONTROLLER FATAL] getMe crashed:', error);
     const err = error as Error;
-    response.status(500).json({ success: false, message: err.message || 'Server error' });
+    return sendResponse(response, 500, false, err.message || 'Server error');
+  }
+};
+
+/**
+ * Update current user profile securely.
+ */
+export const updateMyProfile = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
+  try {
+    const { fullName, phone, block, houseNumber } = request.body;
+    
+    // Strict requirement: Full name is conceptually mandatory for profile sync
+    if (!fullName) {
+      return sendResponse(response, 400, false, 'Full name is strictly required.');
+    }
+
+    const user = await User.findById(request.user?._id);
+    if (!user) {
+      return sendResponse(response, 404, false, 'Identity not found in database.');
+    }
+
+    // Safety: ensure profile + address containers exist
+    if (!user.profile) user.profile = { cnic: (user as any).profile?.cnic || 'N/A' };
+    if (!user.profile.address) user.profile.address = { block: '', houseNumber: '' };
+
+    // Handle Binary Avatar Payload via Cloudinary Integration
+    if (request.file) {
+      try {
+        const avatarUrl = await uploadBufferToCloudinary(request.file.buffer, 'profiles');
+        user.profile.avatar = avatarUrl;
+      } catch (cloudinaryErr) {
+        console.error('[PROFILE SYNC] Cloudinary Upload Failure:', cloudinaryErr);
+      }
+    }
+
+    // Secure Field Mapping (Manual keys prevent over-posting vulnerabilities)
+    user.profile.fullName = fullName || user.profile.fullName;
+    user.profile.phone = phone || user.profile.phone;
+    user.profile.address.block = block || user.profile.address.block;
+    user.profile.address.houseNumber = houseNumber || user.profile.address.houseNumber;
+
+    // Persist changes
+    await user.save();
+
+    console.log('[AUTH CONTROLLER] Profile Updated for:', user.email);
+    
+    // Return safe object (Schema .toObject already handles sensitive field stripping)
+    return sendResponse(response, 200, true, 'Profile synchronized successfully! ✅', user);
+  } catch (error) {
+    console.error('[AUTH CONTROLLER FATAL] updateMyProfile crashed:', error);
+    const err = error as Error;
+    return sendResponse(response, 500, false, err.message || 'Server error during profile update');
   }
 };

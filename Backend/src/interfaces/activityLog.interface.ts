@@ -9,6 +9,12 @@ export interface IActivityLog extends Document {
   oldValue?: string;
   newValue?: string;
   meta?: any;
+  metadata?: {
+    from?: string;
+    to?: string;
+    assignedTo?: Types.ObjectId;
+    message?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }

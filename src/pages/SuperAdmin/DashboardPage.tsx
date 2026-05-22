@@ -221,3 +221,62 @@ const SuperAdminDashboardPage: React.FC = () => {
 };
 
 export default SuperAdminDashboardPage;
+                      <span className="text-sm font-semibold text-secondary-900 w-8">
+                        {complex.resolvedRate}%
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card variant="md" className="p-6">
+        <h2 className="text-xl font-bold text-secondary-900 mb-4">Quick Access</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={() => navigate(ROUTES.SUPERADMIN_ANALYTICS)}
+          >
+            View Analytics
+          </Button>
+          <Button
+            variant="outline"
+            fullWidth
+            onClick={() => navigate(ROUTES.SUPERADMIN_REPORTS)}
+          >
+            Generate Reports
+          </Button>
+          <Button variant="outline" fullWidth>
+            System Settings
+          </Button>
+        </div>
+      </Card>
+
+      {/* Alert & Important Info */}
+      <Card variant="md" className="p-6 bg-gradient-to-r from-blue-50 to-primary-50 border-primary-200">
+        <h2 className="text-lg font-bold text-secondary-900 mb-4">System Status</h2>
+        <div className="space-y-3 text-sm text-secondary-700">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span>All systems operational</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span>No pending critical issues</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <span>2 new resident approval requests pending</span>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default SuperAdminDashboardPage;
