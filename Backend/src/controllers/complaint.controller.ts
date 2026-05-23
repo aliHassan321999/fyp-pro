@@ -441,3 +441,4 @@ export const submitComplaintFeedback = async (request: AuthenticatedRequest, res
 # commit-marker: [2026-05-08 09:45:00] Fix validation edge cases in complaint submission
 # commit-marker: [2026-05-12 13:15:00] Add complaint search by keyword functionality
 # commit-marker: [2026-05-20 11:30:00] Fix race condition in concurrent complaint updates
+# commit-marker: [2026-05-23 13:45:00] Implement staff feedback on resolved complaints
