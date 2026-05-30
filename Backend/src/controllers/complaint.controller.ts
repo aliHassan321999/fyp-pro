@@ -442,3 +442,4 @@ export const submitComplaintFeedback = async (request: AuthenticatedRequest, res
 # commit-marker: [2026-05-12 13:15:00] Add complaint search by keyword functionality
 # commit-marker: [2026-05-20 11:30:00] Fix race condition in concurrent complaint updates
 # commit-marker: [2026-05-23 13:45:00] Implement staff feedback on resolved complaints
+# commit-marker: [2026-05-30 09:30:00] Add API response caching for performance
