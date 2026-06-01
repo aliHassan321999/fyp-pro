@@ -2,21 +2,31 @@ export interface Complaint {
   _id: string;
   title: string;
   description: string;
-  status: 'open' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
+  status: 'pending' | 'pending_assignment' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'medium' | 'high' | 'critical';
   residentId?: { _id: string; email: string; profile?: { fullName: string } };
   assignedStaffId?: { _id: string; email: string; profile?: { fullName: string } } | string;
   departmentId?: { _id: string; name: string } | any;
   category?: string;
+  location?: { lat: number; lng: number };
   locationText?: string;
-  slaDeadline?: string;
+  slaDeadline: string;
+  slaStatus?: 'normal' | 'extended';
+  slaBreached?: boolean;
+  assignedAt?: string;
+  lastAssignedAt?: string;
+  resolvedAt?: string;
+  reassignmentCount?: number;
   createdAt: string;
   updatedAt: string;
   feedbackSubmitted?: boolean;
-  feedbackRating?: number;
+  rating?: number;
   feedbackComment?: string;
   resolutionRemarks?: string;
+  attachedImages?: string[];
   images?: string[];
+  isActive?: boolean;
+  recommendedStaffIds?: string[];
 }
 
 export interface SubmitFeedbackDto {
@@ -35,7 +45,7 @@ export interface CreateComplaintDto {
 
 export interface UpdateComplaintStatusDto {
   id: string;
-  status: 'open' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
+  status: 'pending' | 'pending_assignment' | 'assigned' | 'in_progress' | 'resolved' | 'closed';
   resolutionRemarks?: string;
 }
 

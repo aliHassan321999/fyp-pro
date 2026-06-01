@@ -7,6 +7,44 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { sendEmail } from '../utils/email';
 import { sendResponse } from '../utils/response';
 
+/**
+ * GET /users/:id
+ * Fetch a single user by ID with populated relationships
+ */
+export const getUserById = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
+  try {
+    const { id } = request.params;
+
+    const user = await User.findById(id)
+      .select('-password')
+      .populate('departmentId', 'name')
+      .lean();
+
+    if (!user) {
+      return sendResponse(response, 404, false, 'User not found.');
+    }
+
+    // Format response with consistent field names
+    const formattedUser = {
+      _id: user._id,
+      email: user.email,
+      name: user.profile?.fullName || user.email,
+      profile: user.profile,
+      role: user.role,
+      departmentId: user.departmentId,
+      rank: user.rank,
+      accountStatus: user.accountStatus,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    return sendResponse(response, 200, true, 'User retrieved successfully', formattedUser);
+  } catch (error) {
+    const err = error as Error;
+    return sendResponse(response, 500, false, err.message || 'Server error');
+  }
+};
+
 export const createStaff = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
     const { fullName, email, password, phone, cnic, departmentId, rank } = request.body;
