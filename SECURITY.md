@@ -205,3 +205,4 @@ This system implements:
 
 **Last Updated**: June 7, 2024
 **Security Audit Status**: ✅ PASSED - All critical vulnerabilities addressed
+# commit-marker: [2026-06-02 13:00:00] Add SECURITY.md with vulnerability disclosure policy
