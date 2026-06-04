@@ -257,3 +257,4 @@ All changes have been designed to be **backward compatible** and **non-breaking*
 ---
 
 **Summary**: All 12 API mismatches resolved. System ready for full integration testing.
+# commit-marker: [2026-06-04 11:30:00] Add API documentation with endpoint descriptions
