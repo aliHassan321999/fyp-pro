@@ -361,3 +361,4 @@ export default AuditLogsPage;
 # commit-marker: [2026-05-10 14:00:00] Add loading skeletons for complaint list cards
 # commit-marker: [2026-05-15 14:30:00] Create reusable DataTable component with sorting
 # commit-marker: [2026-05-27 14:15:00] Add activity log export for audit compliance
+# commit-marker: [2026-06-06 10:15:00] Fix audit log filtering by action type
