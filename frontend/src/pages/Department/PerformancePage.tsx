@@ -37,13 +37,13 @@ const DepartmentPerformancePage: React.FC = () => {
 
       // Fetch staff
       const staffRes = await axios.get(
-        `http://localhost:5000/api/departments/${user.departmentId}/staff`,
+        `/api/departments/${user.departmentId}/staff`,
         { withCredentials: true }
       );
 
       // Fetch all complaints
       const complaintsRes = await axios.get(
-        'http://localhost:5000/api/complaints',
+        '/api/complaints',
         { withCredentials: true }
       );
 

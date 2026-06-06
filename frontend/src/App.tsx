@@ -19,6 +19,7 @@ import ProfilePage from '@pages/Resident/ProfilePage';
 
 import StaffDashboard from '@pages/Staff/DashboardPage';
 import AssignedComplaintsPage from '@pages/Staff/AssignedComplaintsPage';
+import CompletedWorkPage from '@pages/Staff/CompletedWorkPage';
 
 import DepartmentDashboard from '@pages/Department/DashboardPage';
 import DepartmentStaffPage from '@pages/Department/StaffPage';
@@ -35,6 +36,7 @@ import SuperAdminDashboard from '@pages/SuperAdmin/DashboardPage';
 import SuperAdminAnalyticsPage from '@pages/SuperAdmin/AnalyticsPage';
 import SuperAdminReportsPage from '@pages/SuperAdmin/ReportsPage';
 import SuperAdminRequestsPage from '@pages/SuperAdmin/RequestsPage';
+import AdminPerformancePage from '@pages/SuperAdmin/AdminPerformancePage';
 
 // Common pages (available for all roles)
 import CommonProfilePage from '@pages/Common/ProfilePage';
@@ -158,6 +160,14 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path={ROUTES.STAFF_COMPLETED_WORK}
+        element={
+          <ProtectedRoute requiredRole="staff">
+            <CompletedWorkPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Department Routes */}
       <Route
@@ -185,7 +195,7 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path={ROUTES.DEPARTMENT_PERFORMANCE}
+        path={ROUTES.DEPARTMENT_STAFF_PERFORMANCE}
         element={
           <ProtectedRoute requiredRole="department_head">
             <DepartmentPerformancePage />
@@ -265,6 +275,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRole="superadmin">
             <SuperAdminRequestsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.SUPERADMIN_ADMIN_PERFORMANCE}
+        element={
+          <ProtectedRoute requiredRole="superadmin">
+            <AdminPerformancePage />
           </ProtectedRoute>
         }
       />

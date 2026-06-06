@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
               {
                 label: 'Completed Work',
                 icon: <CheckCircle className="w-5 h-5" />,
-                path: '#',
+                path: ROUTES.STAFF_COMPLETED_WORK,
               },
             ],
           },
@@ -148,21 +148,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
                 label: 'Complaints',
                 icon: <ClipboardList className="w-5 h-5" />,
                 path: ROUTES.DEPARTMENT_COMPLAINTS,
-              },
-            ],
-          },
-          {
-            title: 'Personal',
-            items: [
-              {
-                label: 'Profile',
-                icon: <Settings className="w-5 h-5" />,
-                path: ROUTES.DEPARTMENT_PROFILE,
-              },
-              {
-                label: 'Help & Support',
-                icon: <HelpCircle className="w-5 h-5" />,
-                path: ROUTES.DEPARTMENT_HELP,
               },
             ],
           },

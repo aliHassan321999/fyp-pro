@@ -172,9 +172,9 @@ const SuperAdminDashboardPage: React.FC = () => {
               <Button
                 variant="primary"
                 size="sm"
-                disabled
+                onClick={() => navigate(ROUTES.SUPERADMIN_ADMIN_PERFORMANCE)}
               >
-                Coming Soon
+                View Performance
               </Button>
             </div>
             <div className="p-3 bg-purple-100 rounded-lg">

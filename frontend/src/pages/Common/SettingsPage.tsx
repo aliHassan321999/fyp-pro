@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Lock, Bell, Shield, Database, LogOut } from 'lucide-react';
+import { Eye, EyeOff, Lock } from 'lucide-react';
 import { useAuth } from '@hooks/useAuth';
 import { Button, Card } from '@components/Common';
 import axios from 'axios';
@@ -14,18 +14,10 @@ interface PasswordError {
   [key: string]: string;
 }
 
-interface NotificationSettings {
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  inAppNotifications: boolean;
-  complaintUpdates: boolean;
-  weeklyReports: boolean;
-}
-
 const SettingsPage: React.FC = () => {
   const { user, logout } = useAuth();
   const isDepartmentUser = user?.role === 'department_head' || user?.role === 'superadmin';
-  const [activeTab, setActiveTab] = useState<'password' | 'notifications' | 'privacy' | 'data'>('password');
+  const [activeTab, setActiveTab] = useState<'password'>('password');
   
   // Password Change State
   const [showPasswords, setShowPasswords] = useState({
@@ -43,18 +35,6 @@ const SettingsPage: React.FC = () => {
   const [passwordErrors, setPasswordErrors] = useState<PasswordError>({});
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
-
-  // Notification Settings State
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
-    emailNotifications: true,
-    smsNotifications: true,
-    inAppNotifications: true,
-    complaintUpdates: true,
-    weeklyReports: false,
-  });
-
-  const [notificationSuccess, setNotificationSuccess] = useState('');
-  const [isSubmittingNotifications, setIsSubmittingNotifications] = useState(false);
 
   // Password validation
   const validatePassword = (): boolean => {
@@ -113,33 +93,6 @@ const SettingsPage: React.FC = () => {
     } finally {
       setIsSubmittingPassword(false);
     }
-  };
-
-  // Handle notification settings save
-  const handleNotificationsSave = async () => {
-    setNotificationSuccess('');
-    setIsSubmittingNotifications(true);
-
-    try {
-      await axios.put('/api/users/notification-settings', notificationSettings);
-      setNotificationSuccess('Notification settings saved successfully!');
-      
-      // Clear message after 5 seconds
-      setTimeout(() => setNotificationSuccess(''), 5000);
-    } catch (error: any) {
-      const errorMsg = error.response?.data?.message || 'Failed to save notification settings';
-      console.error(errorMsg);
-    } finally {
-      setIsSubmittingNotifications(false);
-    }
-  };
-
-  // Toggle notification setting
-  const toggleNotificationSetting = (key: keyof NotificationSettings) => {
-    setNotificationSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }));
   };
 
   return (
@@ -306,61 +259,10 @@ const SettingsPage: React.FC = () => {
         ) : (
           // For Other Users: Show Full Settings with Sidebar
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar Navigation */}
-            <div className="lg:col-span-1">
-              <nav className="space-y-2 bg-white rounded-lg shadow-sm p-4">
-                <button
-                  onClick={() => setActiveTab('password')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    activeTab === 'password'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Lock className="w-5 h-5" />
-                  <span>Change Password</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('notifications')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    activeTab === 'notifications'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Bell className="w-5 h-5" />
-                  <span>Notifications</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('privacy')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    activeTab === 'privacy'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Shield className="w-5 h-5" />
-                  <span>Privacy & Security</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('data')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                    activeTab === 'data'
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <Database className="w-5 h-5" />
-                  <span>Data & Privacy</span>
-                </button>
-              </nav>
-            </div>
+            {/* No Sidebar - Only Password Section */}
 
             {/* Main Content Area */}
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-4">
             {/* Change Password Tab */}
             {activeTab === 'password' && (
               <Card className="p-6">
@@ -501,210 +403,6 @@ const SettingsPage: React.FC = () => {
                     {isSubmittingPassword ? 'Updating...' : 'Update Password'}
                   </button>
                 </form>
-              </Card>
-            )}
-
-            {/* Notifications Tab */}
-            {activeTab === 'notifications' && (
-              <Card className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Notification Preferences</h2>
-
-                {notificationSuccess && (
-                  <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
-                    ✓ {notificationSuccess}
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {/* Email Notifications */}
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Email Notifications</h3>
-                      <p className="text-sm text-gray-600">Receive updates via email</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.emailNotifications}
-                        onChange={() => toggleNotificationSetting('emailNotifications')}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-
-                  {/* SMS Notifications */}
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    <div>
-                      <h3 className="font-medium text-gray-900">SMS Notifications</h3>
-                      <p className="text-sm text-gray-600">Receive updates via SMS</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.smsNotifications}
-                        onChange={() => toggleNotificationSetting('smsNotifications')}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-
-                  {/* In-App Notifications */}
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    <div>
-                      <h3 className="font-medium text-gray-900">In-App Notifications</h3>
-                      <p className="text-sm text-gray-600">See notifications in the app</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.inAppNotifications}
-                        onChange={() => toggleNotificationSetting('inAppNotifications')}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-
-                  {/* Complaint Updates */}
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Complaint Updates</h3>
-                      <p className="text-sm text-gray-600">Get notified about complaint status changes</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.complaintUpdates}
-                        onChange={() => toggleNotificationSetting('complaintUpdates')}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-
-                  {/* Weekly Reports */}
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Weekly Reports</h3>
-                      <p className="text-sm text-gray-600">Receive weekly summary reports</p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={notificationSettings.weeklyReports}
-                        onChange={() => toggleNotificationSetting('weeklyReports')}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleNotificationsSave}
-                  disabled={isSubmittingNotifications}
-                  className="w-full mt-6 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-                >
-                  {isSubmittingNotifications ? 'Saving...' : 'Save Preferences'}
-                </button>
-              </Card>
-            )}
-
-            {/* Privacy & Security Tab */}
-            {activeTab === 'privacy' && (
-              <Card className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Privacy & Security</h2>
-
-                <div className="space-y-6">
-                  {/* Two-Factor Authentication */}
-                  <div className="border-b border-gray-200 pb-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">Two-Factor Authentication</h3>
-                        <p className="text-sm text-gray-600 mt-1">Add an extra layer of security to your account</p>
-                      </div>
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                        Enable
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Login Activity */}
-                  <div className="border-b border-gray-200 pb-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">Login Activity</h3>
-                        <p className="text-sm text-gray-600 mt-1">View your recent login activity</p>
-                      </div>
-                      <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors">
-                        View
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Active Sessions */}
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">Active Sessions</h3>
-                        <p className="text-sm text-gray-600 mt-1">Manage your active sessions on other devices</p>
-                      </div>
-                      <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors">
-                        Manage
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
-
-            {/* Data & Privacy Tab */}
-            {activeTab === 'data' && (
-              <Card className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Data & Privacy</h2>
-
-                <div className="space-y-6">
-                  {/* Download Your Data */}
-                  <div className="border-b border-gray-200 pb-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">Download Your Data</h3>
-                        <p className="text-sm text-gray-600 mt-1">Get a copy of all your data in JSON format</p>
-                      </div>
-                      <button className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                        Download
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Delete Account */}
-                  <div className="border-b border-gray-200 pb-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">Delete Account</h3>
-                        <p className="text-sm text-gray-600 mt-1">Permanently delete your account and all associated data</p>
-                      </div>
-                      <button className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">
-                        Delete Account
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Privacy Policy */}
-                  <div>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-medium text-gray-900">Privacy Policy</h3>
-                        <p className="text-sm text-gray-600 mt-1">Review our privacy policy and terms of service</p>
-                      </div>
-                      <a href="#" className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors">
-                        Read
-                      </a>
-                    </div>
-                  </div>
-                </div>
               </Card>
             )}
             </div>

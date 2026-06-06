@@ -58,6 +58,7 @@ export const ROUTES = {
   // Staff
   STAFF_DASHBOARD: '/staff/dashboard',
   STAFF_ASSIGNED_COMPLAINTS: '/staff/assigned-complaints',
+  STAFF_COMPLETED_WORK: '/staff/completed-work',
 
   // Department
   DEPARTMENT_DASHBOARD: '/department/dashboard',
@@ -82,6 +83,7 @@ export const ROUTES = {
   SUPERADMIN_ANALYTICS: '/superadmin/analytics',
   SUPERADMIN_REPORTS: '/superadmin/reports',
   SUPERADMIN_REQUESTS: '/superadmin/requests',
+  SUPERADMIN_ADMIN_PERFORMANCE: '/superadmin/admin-performance',
 
   // Common Routes (Available to all roles)
   PROFILE: '/profile',
