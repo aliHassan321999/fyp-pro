@@ -1,6 +1,9 @@
-import './custom.rules';
+// Register validation constraints - uses custom validation utility
+// See validation.utils.ts for the validateData function
 
-export const registerConstraints = {
+import { ValidationConstraints } from './validation.utils';
+
+export const registerConstraints: ValidationConstraints = {
   // --- TOP HALF OF FORM ---
 
   "profile.fullName": {

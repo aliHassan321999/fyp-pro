@@ -232,6 +232,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen = true }) => {
                 icon: <FileText className="w-5 h-5" />,
                 path: ROUTES.SUPERADMIN_REPORTS,
               },
+              {
+                label: 'Audit Logs',
+                icon: <History className="w-5 h-5" />,
+                path: ROUTES.SUPERADMIN_AUDIT_LOGS,
+              },
             ],
           },
           {

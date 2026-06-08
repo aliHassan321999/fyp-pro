@@ -101,10 +101,8 @@ const RegisterPage: React.FC = () => {
         role: 'resident',
         profile: {
           fullName: formData.fullName,
-          phoneNumber: formData.phoneNumber,
+          phone: formData.phoneNumber,
           cnic: formData.cnic,
-          proofDocumentUrl: 'dummy_url_for_now',
-          profileImage: '',
           address: {
             block: formData.block,
             houseNumber: formData.houseNumber,

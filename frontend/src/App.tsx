@@ -36,6 +36,7 @@ import SuperAdminDashboard from '@pages/SuperAdmin/DashboardPage';
 import SuperAdminAnalyticsPage from '@pages/SuperAdmin/AnalyticsPage';
 import SuperAdminReportsPage from '@pages/SuperAdmin/ReportsPage';
 import SuperAdminRequestsPage from '@pages/SuperAdmin/RequestsPage';
+import SuperAdminAuditLogsPage from '@pages/SuperAdmin/AuditLogsPage';
 import AdminPerformancePage from '@pages/SuperAdmin/AdminPerformancePage';
 
 // Common pages (available for all roles)
@@ -92,6 +93,9 @@ const AppRoutes: React.FC = () => {
       <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
       <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
       <Route path={ROUTES.VERIFY_OTP} element={<VerifyOTPPage />} />
+      
+      {/* Public Routes (No Authentication Required) */}
+      <Route path={ROUTES.HELP_SUPPORT} element={<HelpSupportPage />} />
 
       {/* Resident Routes */}
       <Route
@@ -271,6 +275,14 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path={ROUTES.SUPERADMIN_AUDIT_LOGS}
+        element={
+          <ProtectedRoute requiredRole="superadmin">
+            <SuperAdminAuditLogsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path={ROUTES.SUPERADMIN_REQUESTS}
         element={
           <ProtectedRoute requiredRole="superadmin">
@@ -293,14 +305,6 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <CommonProfilePage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.HELP_SUPPORT}
-        element={
-          <ProtectedRoute>
-            <HelpSupportPage />
           </ProtectedRoute>
         }
       />

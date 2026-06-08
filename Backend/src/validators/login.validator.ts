@@ -1,4 +1,7 @@
-export const loginConstraints = {
+// Login validation constraints - uses custom validation utility
+import { ValidationConstraints } from './validation.utils';
+
+export const loginConstraints: ValidationConstraints = {
   // We name this to match what your Next.js state should send
   emailOrUsername: {
     presence: { allowEmpty: false, message: "is required" },

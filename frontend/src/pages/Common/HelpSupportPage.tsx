@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { MessageSquare, Mail, Phone, Upload, Search, ChevronDown, FileText } from 'lucide-react';
-import { useAuth } from '@hooks/useAuth';
+import { MessageSquare, Mail, Phone, Upload, Search, ChevronDown, FileText, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button, Card } from '@components/Common';
 
 interface FAQItem {
@@ -16,7 +16,7 @@ interface SupportRequest {
 }
 
 const HelpSupportPage: React.FC = () => {
-  const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'faq' | 'contact' | 'request' | 'guidelines'>('faq');
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -113,7 +113,7 @@ const HelpSupportPage: React.FC = () => {
         subject: supportRequest.subject,
         message: supportRequest.message,
         attachment: supportRequest.attachmentName,
-        submittedBy: user?.email,
+        submittedBy: 'visitor@help-center',
         timestamp: new Date().toISOString(),
       });
 
@@ -127,11 +127,21 @@ const HelpSupportPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Help & Support</h1>
-        <p className="text-gray-600 mt-1">Get answers to common questions and submit support requests</p>
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-5xl mx-auto">
+      <div className="space-y-6">
+      {/* Page Header with Back Button */}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="w-6 h-6 text-gray-600" />
+        </button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Help & Support</h1>
+          <p className="text-gray-600 mt-1">Get answers to common questions and submit support requests</p>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -588,6 +598,8 @@ const HelpSupportPage: React.FC = () => {
           </Card>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 };

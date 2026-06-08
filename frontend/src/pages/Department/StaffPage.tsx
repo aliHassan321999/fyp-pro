@@ -8,6 +8,8 @@ interface StaffMember {
   _id: string;
   profile: {
     fullName: string;
+    avatar?: string;
+    profileImage?: string;
   };
   email: string;
   phone?: string;
@@ -299,9 +301,17 @@ const DepartmentStaffPage: React.FC = () => {
                   {/* Header */}
                   <div className="flex items-start justify-between pb-4 border-b border-secondary-200">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-primary-600" />
-                      </div>
+                      {member.profile?.avatar || member.profile?.profileImage ? (
+                        <img
+                          src={member.profile.avatar || member.profile.profileImage}
+                          alt={member.profile.fullName}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-primary-100"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                          <User className="w-6 h-6 text-primary-600" />
+                        </div>
+                      )}
                       <div>
                         <h3 className="text-lg font-bold text-secondary-900">
                           {member.profile.fullName}

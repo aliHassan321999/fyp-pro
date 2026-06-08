@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, User, Mail, Phone, Building2, Users, Lock, Camera } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Phone, Building2, Users, Lock, Camera, AlertCircle } from 'lucide-react';
 import { useAuth } from '@hooks/useAuth';
+import { useUpdateProfileMutation } from '@/features/auth/auth.api';
+import { useGetDepartmentsQuery } from '@/features/admin/admin.api';
 import { Button, Card } from '@components/Common';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface PasswordChangeForm {
   currentPassword: string;
@@ -15,6 +18,8 @@ interface PasswordError {
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
+  const [updateProfile, { isLoading: isUpdatingProfile }] = useUpdateProfileMutation();
+  const { data: departmentsData } = useGetDepartmentsQuery();
   const [activeTab, setActiveTab] = useState<'profile'>('profile');
   const [showPasswords, setShowPasswords] = useState({
     current: false,
@@ -32,15 +37,24 @@ const ProfilePage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileEditMode, setProfileEditMode] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
 
-  // Mock user data for display (in real app, would come from user object)
-  const mockProfileData = {
-    firstName: user?.firstName || 'John',
-    lastName: user?.lastName || 'Doe',
-    email: user?.email || 'john.doe@example.com',
-    phone: user?.phone || '+92-300-1234567',
-    profilePicture: user?.avatar || 'https://via.placeholder.com/150',
+  // Get actual user data from profile
+  const profileData = {
+    fullName: user?.profile?.fullName || 'User',
+    email: user?.email || '',
+    phone: user?.profile?.phone || '',
+    cnic: user?.profile?.cnic || '',
     role: user?.role || 'resident',
+  };
+
+  // Get department name
+  const getDepartmentName = () => {
+    if (user?.role === 'staff' && user?.departmentId) {
+      const dept = departmentsData?.data?.find((d: any) => d._id === user.departmentId);
+      return dept?.name || 'Unassigned';
+    }
+    return '';
   };
 
   // Role-specific data
@@ -48,23 +62,20 @@ const ProfilePage: React.FC = () => {
     switch (user?.role) {
       case 'resident':
         return {
-          cnic: '12345-1234567-1',
-          houseNumber: '45',
-          block: 'B',
+          cnic: user?.profile?.cnic || '',
+          address: user?.profile?.address || {},
         };
       case 'staff':
         return {
-          department: 'Maintenance',
-          availabilityStatus: 'Available',
-          complaintsClosed: 47,
-          averageResolutionTime: '2.5 days',
+          department: getDepartmentName(),
+          departmentId: user?.departmentId,
+          cnic: user?.profile?.cnic || '',
+          phone: user?.profile?.phone || '',
         };
-      case 'department':
+      case 'department_head':
         return {
-          departmentName: 'Maintenance Department',
-          staffCount: 12,
-          totalComplaints: 156,
-          completionRate: '94%',
+          departmentName: getDepartmentName(),
+          departmentId: user?.departmentId,
         };
       case 'admin':
       case 'superadmin':
@@ -145,8 +156,38 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleProfileSave = () => {
-    console.log('[Save Profile] Profile data saved:', mockProfileData);
+    console.log('[Save Profile] Profile data saved:', profileData);
     setProfileEditMode(false);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      showError('Only JPG and PNG files are allowed');
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      await updateProfile(formData).unwrap();
+      showSuccess('Profile picture updated successfully');
+    } catch (err: any) {
+      showError(err?.data?.message || 'Failed to upload picture');
+    } finally {
+      setUploadingPicture(false);
+    }
   };
 
   return (
@@ -179,32 +220,37 @@ const ProfilePage: React.FC = () => {
             <div className="p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Profile Picture</h2>
               <div className="flex items-center gap-6">
-                <img
-                  src={mockProfileData.profilePicture}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
-                />
+                <div className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                  {profileData.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
                 <div className="flex-1">
                   <p className="text-sm text-gray-600 mb-4">
                     Upload a new profile picture. Accepted formats: JPG, PNG (max 5MB)
                   </p>
                   <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      className="flex items-center gap-2"
-                      disabled
-                    >
-                      <Camera className="w-4 h-4" />
-                      Upload Photo
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled
-                    >
-                      Remove
-                    </Button>
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          document.getElementById('file-upload')?.click();
+                        }}
+                        disabled={uploadingPicture}
+                        className="flex items-center gap-2 px-6 py-2.5 text-base bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Camera className="w-4 h-4" />
+                        {uploadingPicture ? 'Uploading...' : 'Upload Photo'}
+                      </button>
+                    </label>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg"
+                      onChange={handleFileUpload}
+                      disabled={uploadingPicture}
+                      className="hidden"
+                    />
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">(UI Preview - No actual upload)</p>
                 </div>
               </div>
             </div>
@@ -234,20 +280,12 @@ const ProfilePage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Full Name
                   </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      defaultValue={mockProfileData.firstName}
-                      disabled={!profileEditMode}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm disabled:bg-gray-100"
-                    />
-                    <input
-                      type="text"
-                      defaultValue={mockProfileData.lastName}
-                      disabled={!profileEditMode}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm disabled:bg-gray-100"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    defaultValue={profileData.fullName}
+                    disabled={!profileEditMode}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm disabled:bg-gray-100"
+                  />
                 </div>
 
                 {/* Email */}
@@ -258,7 +296,7 @@ const ProfilePage: React.FC = () => {
                   </label>
                   <input
                     type="email"
-                    defaultValue={mockProfileData.email}
+                    defaultValue={profileData.email}
                     disabled
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
                   />
@@ -273,7 +311,7 @@ const ProfilePage: React.FC = () => {
                   </label>
                   <input
                     type="tel"
-                    defaultValue={mockProfileData.phone}
+                    defaultValue={profileData.phone}
                     disabled={!profileEditMode}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 text-sm disabled:bg-gray-100"
                   />
@@ -286,7 +324,7 @@ const ProfilePage: React.FC = () => {
                   </label>
                   <input
                     type="text"
-                    defaultValue={mockProfileData.role.charAt(0).toUpperCase() + mockProfileData.role.slice(1)}
+                    defaultValue={profileData.role.charAt(0).toUpperCase() + profileData.role.slice(1)}
                     disabled
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
                   />
@@ -338,34 +376,34 @@ const ProfilePage: React.FC = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
                       />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        House Number
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={(roleSpecificData as any).houseNumber}
-                        disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Block
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={(roleSpecificData as any).block}
-                        disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
-                      />
-                    </div>
                   </>
                 )}
 
                 {/* Staff-Specific */}
                 {user?.role === 'staff' && (
                   <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        CNIC
+                      </label>
+                      <input
+                        type="text"
+                        defaultValue={(roleSpecificData as any).cnic}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        defaultValue={(roleSpecificData as any).phone}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
+                      />
+                    </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Department
@@ -379,33 +417,11 @@ const ProfilePage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Availability Status
+                        Department ID
                       </label>
                       <input
                         type="text"
-                        defaultValue={(roleSpecificData as any).availabilityStatus}
-                        disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Complaints Closed
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={(roleSpecificData as any).complaintsClosed}
-                        disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Avg. Resolution Time
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={(roleSpecificData as any).averageResolutionTime}
+                        defaultValue={(roleSpecificData as any).departmentId}
                         disabled
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
                       />
@@ -414,7 +430,7 @@ const ProfilePage: React.FC = () => {
                 )}
 
                 {/* Department-Specific */}
-                {user?.role === 'department' && (
+                {user?.role === 'department_head' && (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
@@ -429,35 +445,12 @@ const ProfilePage: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        Staff Count
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={(roleSpecificData as any).staffCount}
-                        disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
-                      />
-                    </div>
-                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Total Complaints
+                        Department ID
                       </label>
                       <input
                         type="text"
-                        defaultValue={(roleSpecificData as any).totalComplaints}
-                        disabled
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Completion Rate
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue={(roleSpecificData as any).completionRate}
+                        defaultValue={(roleSpecificData as any).departmentId}
                         disabled
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-900 text-sm"
                       />

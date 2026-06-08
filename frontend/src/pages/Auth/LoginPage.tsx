@@ -92,7 +92,11 @@ const LoginPage: React.FC = () => {
           <span className="text-lg font-bold text-gray-900">Complaint Management System</span>
         </div>
         <div className="flex items-center gap-6">
-          <button type="button" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.HELP_SUPPORT)}
+            className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+          >
             Help Center
           </button>
           <button
@@ -229,19 +233,7 @@ const LoginPage: React.FC = () => {
               </Button>
             </form>
 
-            {/* Signup Section */}
-            <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-              <p className="text-xs text-gray-700">
-                New resident?{' '}
-                <button
-                  type="button"
-                  onClick={() => navigate(ROUTES.REGISTER)}
-                  className="text-blue-600 font-bold hover:text-blue-700 transition-colors"
-                >
-                  Create an account
-                </button>
-              </p>
-            </div>
+
           </Card>
         </div>
 

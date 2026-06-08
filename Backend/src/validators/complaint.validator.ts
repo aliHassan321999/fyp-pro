@@ -1,5 +1,8 @@
 
-export const createComplaintConstraints = {
+// Complaint validation constraints - uses custom validation utility
+import { ValidationConstraints } from './validation.utils';
+
+export const createComplaintConstraints: ValidationConstraints = {
   // 1. Complaint Title
   title: {
     presence: { allowEmpty: false, message: "is required" },
@@ -21,9 +24,7 @@ export const createComplaintConstraints = {
   "coordinates.lat": { numericality: true },
   "coordinates.lng": { numericality: true },
 
-
-
-  // 7. Photos (Optional - validate.js type checking)
+  // 7. Photos (Optional - type checking)
   attachedImages: {
     type: "array" // Ensures they don't just send a single string instead of an array
   }

@@ -40,18 +40,22 @@ export const register = async (request: Request, response: Response): Promise<an
 
         await existingUser.save();
 
-        // Log explicitly tracker bounds
-        await ActivityLog.create({
-          action: 'user_reapplied',
-          performedBy: existingUser._id,
-          targetUser: existingUser._id,
-          newValue: `Version ${existingUser.applicationVersion}`,
-          meta: {
-            oldProfile,
-            newProfile: profile,
-            version: existingUser.applicationVersion
-          }
-        });
+        // Log explicitly tracker bounds (non-blocking)
+        try {
+          await ActivityLog.create({
+            action: 'user_reapplied',
+            performedBy: existingUser._id,
+            targetUser: existingUser._id,
+            newValue: `Version ${existingUser.applicationVersion}`,
+            meta: {
+              oldProfile,
+              newProfile: profile,
+              version: existingUser.applicationVersion
+            }
+          });
+        } catch (logError) {
+          console.error('[AUTH CONTROLLER] ActivityLog creation failed during re-registration:', logError);
+        }
 
         // Non-blocking mail request hook executed explicitly after Native DB commitment
         try {
@@ -188,6 +192,23 @@ export const login = async (request: Request, response: Response): Promise<any> 
     user.refreshToken = await bcrypt.hash(refreshTokenPayload, salt);
     await user.save();
 
+    // Log successful login (non-blocking)
+    try {
+      console.log('[LOGIN] Attempting to create ActivityLog for user:', user.email);
+      const logEntry = await ActivityLog.create({
+        action: 'user_login',
+        performedBy: user._id,
+        metadata: {
+          email: user.email,
+          role: user.role,
+          ipAddress: request.ip || 'unknown'
+        }
+      });
+      console.log('[LOGIN] ✅ ActivityLog created successfully:', logEntry._id);
+    } catch (logError) {
+      console.error('[AUTH CONTROLLER] ActivityLog creation failed, but login continues:', logError);
+    }
+
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -251,8 +272,24 @@ export const refresh = async (request: Request, response: Response): Promise<any
 /**
  * Purge secure cookies unconditionally.
  */
-export const logout = async (request: Request, response: Response): Promise<any> => {
+export const logout = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
   try {
+    // Log user logout (non-blocking)
+    if (request.user) {
+      try {
+        await ActivityLog.create({
+          action: 'user_logout',
+          performedBy: request.user._id,
+          metadata: {
+            email: request.user.email,
+            role: request.user.role
+          }
+        });
+      } catch (logError) {
+        console.error('[AUTH CONTROLLER] ActivityLog creation failed during logout:', logError);
+      }
+    }
+    
     // Optionally delete from DB if tracking is strict
     response.clearCookie('accessToken');
     response.clearCookie('refreshToken');

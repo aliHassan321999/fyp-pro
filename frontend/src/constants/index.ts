@@ -83,6 +83,7 @@ export const ROUTES = {
   SUPERADMIN_ANALYTICS: '/superadmin/analytics',
   SUPERADMIN_REPORTS: '/superadmin/reports',
   SUPERADMIN_REQUESTS: '/superadmin/requests',
+  SUPERADMIN_AUDIT_LOGS: '/superadmin/audit-logs',
   SUPERADMIN_ADMIN_PERFORMANCE: '/superadmin/admin-performance',
 
   // Common Routes (Available to all roles)

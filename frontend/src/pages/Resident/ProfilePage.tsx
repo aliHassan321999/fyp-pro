@@ -11,14 +11,14 @@ const ProfilePage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [updateProfileApi, { isLoading: isSubmitting }] = useUpdateProfileMutation();
-  const [profileImage, setProfileImage] = useState<string | null>(user?.profile?.avatar || user?.profile?.profileImage || null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   
   const [formData, setFormData] = useState({
     fullName: user?.profile?.fullName || '',
-    phone: user?.profile?.phone || user?.profile?.phoneNumber || '',
+    phone: user?.profile?.phone || '',
     cnic: user?.profile?.cnic || '',
     houseNumber: user?.profile?.address?.houseNumber || '',
     block: user?.profile?.address?.block || '',

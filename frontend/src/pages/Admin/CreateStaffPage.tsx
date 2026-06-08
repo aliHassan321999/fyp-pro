@@ -76,7 +76,7 @@ const CreateStaffPage: React.FC = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="+1 (555) 000-0000"
+                placeholder="+92 (300) 0000000"
                 required
                 disabled={isCreating}
               />

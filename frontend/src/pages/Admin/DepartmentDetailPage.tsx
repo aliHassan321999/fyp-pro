@@ -47,8 +47,19 @@ const getSLAColor = (rate: number) => {
     return { text: 'text-red-600', bg: 'bg-red-500', label: 'Poor' };
 };
 
-const Avatar: React.FC<{ name?: string; size?: 'sm' | 'md' | 'lg' }> = ({ name, size = 'sm' }) => {
+const Avatar: React.FC<{ name?: string; image?: string; size?: 'sm' | 'md' | 'lg' }> = ({ name, image, size = 'sm' }) => {
     const sizeClass = size === 'lg' ? 'w-16 h-16 text-2xl' : size === 'md' ? 'w-12 h-12 text-lg' : 'w-9 h-9 text-sm';
+    
+    if (image) {
+        return (
+            <img
+                src={image}
+                alt={name}
+                className={`${sizeClass} rounded-full object-cover flex-shrink-0 border-2 border-gray-200`}
+            />
+        );
+    }
+    
     return (
         <div className={`${sizeClass} rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0`}>
             {name?.charAt(0)?.toUpperCase() || '?'}
@@ -155,9 +166,17 @@ const StaffProfileModal: React.FC<{
                         <X className="w-5 h-5" />
                     </button>
                     <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-black">
-                            {staff.profile?.fullName?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
+                        {staff.profile?.avatar || staff.profile?.profileImage ? (
+                            <img
+                                src={staff.profile.avatar || staff.profile.profileImage}
+                                alt={staff.profile?.fullName}
+                                className="w-16 h-16 rounded-2xl object-cover border-2 border-white/30"
+                            />
+                        ) : (
+                            <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white text-2xl font-black">
+                                {staff.profile?.fullName?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                        )}
                         <div>
                             <div className="flex items-center gap-2">
                                 <h2 className="text-xl font-bold text-white">{staff.profile?.fullName || 'Unknown'}</h2>
@@ -501,7 +520,10 @@ const DepartmentDetailPage: React.FC = () => {
                                         <tr key={staff._id} className="hover:bg-gray-50/60 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <Avatar name={staff.profile?.fullName} />
+                                                    <Avatar 
+                                                        name={staff.profile?.fullName} 
+                                                        image={staff.profile?.avatar || staff.profile?.profileImage}
+                                                    />
                                                     <div>
                                                         <div className="flex items-center gap-1.5">
                                                             <span className="font-semibold text-gray-900 text-sm">{staff.profile?.fullName || staff.email}</span>
@@ -583,7 +605,10 @@ const DepartmentDetailPage: React.FC = () => {
                                 {staffList.map((s: any) => (
                                     <label key={s._id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedAssignee === s._id ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
                                         <input type="radio" name="head" value={s._id} checked={selectedAssignee === s._id} onChange={() => setSelectedAssignee(s._id)} className="accent-blue-600" />
-                                        <Avatar name={s.profile?.fullName} />
+                                        <Avatar 
+                                            name={s.profile?.fullName} 
+                                            image={s.profile?.avatar || s.profile?.profileImage}
+                                        />
                                         <div className="flex-1 min-w-0">
                                             <p className="font-semibold text-sm text-gray-900 truncate">
                                                 {s.profile?.fullName || s.email}
@@ -629,7 +654,10 @@ const DepartmentDetailPage: React.FC = () => {
                             ) : filteredModalStaff.map((s: any) => (
                                 <label key={s._id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedAssignee === s._id ? 'border-blue-500 bg-blue-50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'}`}>
                                     <input type="radio" name="assignee" value={s._id} checked={selectedAssignee === s._id} onChange={() => setSelectedAssignee(s._id)} className="accent-blue-600" />
-                                    <Avatar name={s.name} />
+                                    <Avatar 
+                                        name={s.profile?.fullName || s.name}
+                                        image={s.profile?.avatar || s.profile?.profileImage}
+                                    />
                                     <div className="flex-1 min-w-0">
                                         <p className="font-semibold text-sm text-gray-900 truncate">{s.name}</p>
                                         <p className="text-xs text-gray-400 truncate">{staffTab === 'other' && s.departmentId?.name ? `From: ${s.departmentId.name}` : s.email}</p>

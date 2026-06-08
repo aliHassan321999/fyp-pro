@@ -9,35 +9,35 @@ dotenv.config();
 const users = [
   {
     email: 'superadmin@company.com',
-    password: 'superadmin123',
+    password: process.env.SEED_SUPERADMIN_PASSWORD || 'password123',
     role: 'superadmin',
     name: 'Super Admin',
     cnic: '99999-9999999-9'
   },
   {
     email: 'admin@test.com',
-    password: 'password123',
+    password: process.env.SEED_ADMIN_PASSWORD || 'password123',
     role: 'admin',
     name: 'Test Admin',
     cnic: '11111-1111111-1'
   },
   {
     email: 'head@test.com',
-    password: 'password123',
+    password: process.env.SEED_HEAD_PASSWORD || 'password123',
     role: 'department_head',
     name: 'Test Dept Head',
     cnic: '22222-2222222-2'
   },
   {
     email: 'staff@test.com',
-    password: 'password123',
+    password: process.env.SEED_STAFF_PASSWORD || 'password123',
     role: 'staff',
     name: 'Test Staff Member',
     cnic: '33333-3333333-3'
   },
   {
     email: 'resident@test.com',
-    password: 'password123',
+    password: process.env.SEED_RESIDENT_PASSWORD || 'password123',
     role: 'resident',
     name: 'Test Resident',
     cnic: '44444-4444444-4'
@@ -93,13 +93,12 @@ const seedSystem = async () => {
     console.log('5 Classification Departments created natively.');
     const mainDept = createdDepts.find(d => d.name === 'Maintenance') || createdDepts[0];
 
-    // 3. Create users
+    // 3. Create users with exact names from system
     const salt = await bcrypt.genSalt(10);
 
     for (const u of users) {
-      // Use different password based on user type
-      const password = u.role === 'superadmin' ? 'superadmin123' : 'password123';
-      const hashedPassword = await bcrypt.hash(password, salt);
+      // Hash the password from the user object (which uses env vars or defaults)
+      const hashedPassword = await bcrypt.hash(u.password, salt);
 
       const newUser = await User.create({
         email: u.email,

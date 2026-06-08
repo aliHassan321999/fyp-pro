@@ -139,6 +139,8 @@ export const assignStaffDepartment = async (request: AuthenticatedRequest, respo
     const { departmentId } = request.body;
     const user = request.user!;
 
+    console.log('🔄 [Staff Assignment] Starting assignment:', { staffId: id, departmentId, performedBy: user._id });
+
     // Department head can only assign to their own department
     if (user.role === 'department_head' && user.departmentId?.toString() !== departmentId) {
       return sendResponse(response, 403, false, 'You can only assign staff to your own department.');
@@ -159,18 +161,21 @@ export const assignStaffDepartment = async (request: AuthenticatedRequest, respo
 
     staffMember.departmentId = department._id as any;
     await staffMember.save();
+    console.log('✅ [Staff Assignment] Staff member updated in database');
 
-    await ActivityLog.create({
+    const logEntry = await ActivityLog.create({
       action: 'staff_assigned',
       performedBy: user._id,
       targetUser: staffMember._id,
       departmentId: department._id,
       meta: { newDepartment: department._id }
     });
+    console.log('✅ [Staff Assignment] Activity log created:', logEntry._id);
 
     return sendResponse(response, 200, true, 'Staff successfully assigned to department.');
   } catch (error) {
     const err = error as Error;
+    console.error('❌ [Staff Assignment] Error:', err.message);
     return sendResponse(response, 500, false, err.message || 'Server error tracking assignment.');
   }
 };

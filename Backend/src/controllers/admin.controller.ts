@@ -412,3 +412,106 @@ The Administration Team`
     return sendResponse(response, 500, false, err.message || 'Server error');
   }
 };
+
+/**
+ * Retrieves all audit logs with pagination, filtering, and sorting capabilities
+ */
+export const getAuditLogs = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
+  try {
+    console.log('🔍🔍🔍 [AUDIT LOGS] API CALLED! User:', request.user?.email);
+    const { page = 1, limit = 20, action, userId, startDate, endDate, sortBy = 'createdAt', sortOrder = 'desc' } = request.query;
+
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit as string) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    console.log('🔍 [Audit Logs] Fetching logs with params:', { page: pageNum, limit: limitNum, action, userId, sortBy, sortOrder });
+
+    // Build filter object
+    const filter: any = {};
+
+    if (action) {
+      filter.action = new RegExp(action as string, 'i');
+    }
+
+    if (userId) {
+      filter.performedBy = userId;
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) {
+        filter.createdAt.$gte = new Date(startDate as string);
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
+    }
+
+    console.log('📋 [Audit Logs] Filter object:', filter);
+
+    // Build sort object
+    const sortObj: any = {};
+    const sortByStr = (sortBy as string) || 'createdAt';
+    const sortOrderNum = (sortOrder as string) === 'asc' ? 1 : -1;
+    sortObj[sortByStr] = sortOrderNum;
+
+    // Count total FIRST
+    const total = await ActivityLog.countDocuments(filter);
+    console.log('📊 [Audit Logs] Total count BEFORE find:', total);
+
+    // Fetch audit logs with pagination
+    const logs = await ActivityLog.find(filter)
+      .populate('performedBy', 'email profile')
+      .populate('targetUser', 'email profile')
+      .populate('complaintId', '_id title')
+      .populate('departmentId', 'name')
+      .sort(sortObj)
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    console.log('✅ [Audit Logs] Found logs:', logs.length);
+
+    // Get total count for pagination
+    const totalCount = await ActivityLog.countDocuments(filter);
+    console.log('📊 [Audit Logs] Total count:', totalCount);
+
+    return sendResponse(response, 200, true, 'Audit logs retrieved successfully', {
+      logs,
+      pagination: {
+        current: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limitNum),
+      }
+    });
+  } catch (error) {
+    const err = error as Error;
+    return sendResponse(response, 500, false, err.message || 'Server error');
+  }
+};
+
+/**
+ * TEST ENDPOINT: Check ActivityLog collection
+ */
+export const testActivityLogs = async (request: AuthenticatedRequest, response: Response): Promise<any> => {
+  try {
+    console.log('🧪 [TEST] ActivityLog endpoint called!');
+    
+    const count = await ActivityLog.countDocuments({});
+    console.log('📊 [TEST] Total ActivityLog documents:', count);
+    
+    const allLogs = await ActivityLog.find({}).limit(5).lean();
+    console.log('📋 [TEST] Sample logs:', JSON.stringify(allLogs, null, 2));
+    
+    return sendResponse(response, 200, true, 'Test result', { count, sample: allLogs });
+  } catch (error) {
+    const err = error as Error;
+    console.error('❌ [TEST] Error:', err);
+    return sendResponse(response, 500, false, err.message || 'Test error');
+  }
+};

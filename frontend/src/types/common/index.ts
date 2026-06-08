@@ -2,17 +2,16 @@
 export type UserRole = 'resident' | 'staff' | 'department_head' | 'admin' | 'superadmin';
 
 export interface IAddress {
-  block: string;
-  houseNumber: string;
+  block?: string;
+  houseNumber?: string;
+  street?: string;
 }
 
 export interface IUserProfile {
   fullName?: string;
   phone?: string;
-  phoneNumber?: string;
   cnic: string;
-  avatar?: string;
-  profileImage?: string; // Legacy support
+  proofDocumentUrl?: string;
   address?: IAddress;
 }
 

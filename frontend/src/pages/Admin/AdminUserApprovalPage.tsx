@@ -78,7 +78,7 @@ const AdminUserApprovalPage: React.FC = () => {
 
               <div className="bg-slate-50 p-3 rounded-md mb-6 border border-slate-100">
                  <p className="text-xs text-slate-500"><span className="font-bold">CNIC:</span> {user.profile?.cnic || 'N/A'}</p>
-                 <p className="text-xs text-slate-500"><span className="font-bold">Phone:</span> {user.profile?.phoneNumber || 'N/A'}</p>
+                 <p className="text-xs text-slate-500"><span className="font-bold">Phone:</span> {user.profile?.phone || 'N/A'}</p>
               </div>
 
               <div className="flex items-center gap-3 w-full">
