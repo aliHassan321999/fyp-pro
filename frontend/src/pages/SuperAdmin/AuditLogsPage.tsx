@@ -72,7 +72,7 @@ const AuditLogsPage: React.FC = () => {
       }
 
       console.log('🔍 Fetching audit logs with params:', params);
-      const response = await axios.get('/admin/audit-logs', { params });
+      const response = await axios.get('/api/admin/audit-logs', { params });
       
       console.log('✅ Full API Response:', response.data);
       
